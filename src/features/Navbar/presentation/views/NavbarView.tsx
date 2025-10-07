@@ -48,6 +48,10 @@ export function NavbarView() {
   const isAuthenticated = false; // Temporal
   const userName = 'Usuario'; // Temporal
 
+  // Descomentar cuando tengas AuthProvider configurado:
+  // const { isAuthenticated, user } = useAuth();
+  // const userName = user?.name || 'Usuario';
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

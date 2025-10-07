@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { InstitutionProvider } from "@/features/institution/context/InstitutionProvider";
+import { AuthProvider } from "@/features/auth/context/AuthProvider";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -25,7 +26,9 @@ export default function RootLayout({
         className={`${outfit.variable} font-sans antialiased`}
       >
         <InstitutionProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </InstitutionProvider>
       </body>
     </html>
