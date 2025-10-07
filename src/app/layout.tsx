@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/shared/layout/Navbar";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -24,7 +23,6 @@ export default function RootLayout({
       <body
         className={`${outfit.variable} font-sans antialiased`}
       >
-        <Navbar />
         {children}
       </body>
     </html>
