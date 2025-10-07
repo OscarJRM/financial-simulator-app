@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useNavbar } from '../../hooks/useNavbar';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { MenuItem } from '../../types';
@@ -8,43 +9,57 @@ import { MenuButton } from '../components/MenuButton';
 import { MobileMenu } from '../components/MobileMenu';
 import { AuthButtons } from '../components/AuthButtons';
 
-// Datos del menú
-const menuItems: MenuItem[] = [
-  {
-    label: 'Créditos',
-    subItems: [
+export function NavbarView() {
+  const { isMenuOpen, activeSubmenu, toggleMenu, closeMenu, toggleSubmenu } = useNavbar();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  // Generar menú dinámicamente según el estado de autenticación
+  const menuItems: MenuItem[] = useMemo(() => {
+    const creditosSubItems = [
       {
         label: 'Simulador de Créditos',
         href: '/loans',
         description: 'Calcula tu tabla de amortización',
       },
-      {
-        label: 'Tipos de Créditos',
-        href: '/loans#types',
-        description: 'Conoce nuestras opciones',
-      },
-    ],
-  },
-  {
-    label: 'Inversiones',
-    subItems: [
+    ];
+
+    // Si está autenticado como cliente, agregar "Mis Créditos"
+    if (isAuthenticated && user?.role === 'client') {
+      creditosSubItems.push({
+        label: 'Mis Créditos',
+        href: '/client/credits',
+        description: 'Ver mis créditos activos',
+      });
+    }
+
+    const inversionesSubItems = [
       {
         label: 'Simulador de Inversiones',
         href: '/investments',
         description: 'Planifica tu inversión',
       },
-      {
-        label: 'Productos de Inversión',
-        href: '/investments#products',
-        description: 'Descubre nuestros productos',
-      },
-    ],
-  },
-];
+    ];
 
-export function NavbarView() {
-  const { isMenuOpen, activeSubmenu, toggleMenu, closeMenu, toggleSubmenu } = useNavbar();
-  const { isAuthenticated, user, logout } = useAuth();
+    // Si está autenticado como cliente, agregar "Mis Inversiones"
+    if (isAuthenticated && user?.role === 'client') {
+      inversionesSubItems.push({
+        label: 'Mis Inversiones',
+        href: '/client/investments',
+        description: 'Ver mis inversiones activas',
+      });
+    }
+
+    return [
+      {
+        label: 'Créditos',
+        subItems: creditosSubItems,
+      },
+      {
+        label: 'Inversiones',
+        subItems: inversionesSubItems,
+      },
+    ];
+  }, [isAuthenticated, user?.role]);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-30">
