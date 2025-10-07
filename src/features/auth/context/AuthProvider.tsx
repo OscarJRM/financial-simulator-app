@@ -76,8 +76,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
 
-      // Redirigir al login
-      router.push('/login');
+      // Redirigir a la página principal
+      router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useNavbar } from '../../hooks/useNavbar';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { MenuItem } from '../../types';
 import { Logo } from '../components/Logo';
 import { MenuButton } from '../components/MenuButton';
@@ -43,14 +44,7 @@ const menuItems: MenuItem[] = [
 
 export function NavbarView() {
   const { isMenuOpen, activeSubmenu, toggleMenu, closeMenu, toggleSubmenu } = useNavbar();
-
-  // TODO: Obtener estado de autenticación desde hook useAuth
-  const isAuthenticated = false; // Temporal
-  const userName = 'Usuario'; // Temporal
-
-  // Descomentar cuando tengas AuthProvider configurado:
-  // const { isAuthenticated, user } = useAuth();
-  // const userName = user?.name || 'Usuario';
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-30">
@@ -70,8 +64,8 @@ export function NavbarView() {
             {/* Auth Buttons */}
             <AuthButtons
               isAuthenticated={isAuthenticated}
-              userName={userName}
-              onLogout={() => console.log('Logout')}
+              userName={user?.name}
+              onLogout={logout}
             />
           </div>
         </div>
