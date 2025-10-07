@@ -3,6 +3,7 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
 import { InstitutionConfig, InstitutionContextType } from '../types';
 import { fetchInstitutionConfig, updateInstitutionConfig } from '../services/institutionService';
+import { getContrastTextColor } from '../utils/colorUtils';
 import defaultConfig from '../mocks/defaultConfig.json';
 
 export const InstitutionContext = createContext<InstitutionContextType | undefined>(
@@ -25,18 +26,23 @@ function hexToOklch(hex: string): string {
 
 /**
  * Inyecta las variables CSS en el documento
+ * Calcula automáticamente los colores de texto según la luminancia del fondo
  */
 function applyThemeColors(colors: InstitutionConfig['colors']) {
   if (typeof document !== 'undefined') {
     const root = document.documentElement;
     
+    // Calcular colores de texto óptimos según luminancia
+    const primaryForeground = getContrastTextColor(colors.primary);
+    const secondaryForeground = getContrastTextColor(colors.secondary);
+    
     // Actualiza las variables CSS de shadcn/ui
     root.style.setProperty('--primary', hexToOklch(colors.primary));
     root.style.setProperty('--secondary', hexToOklch(colors.secondary));
     
-    // También puedes actualizar otras variantes si es necesario
-    // root.style.setProperty('--primary-foreground', '#ffffff');
-    // root.style.setProperty('--secondary-foreground', colors.primary);
+    // Colores de texto calculados automáticamente
+    root.style.setProperty('--primary-foreground', hexToOklch(primaryForeground));
+    root.style.setProperty('--secondary-foreground', hexToOklch(secondaryForeground));
   }
 }
 
