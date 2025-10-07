@@ -23,14 +23,7 @@ export function NavbarView() {
       },
     ];
 
-    // Si está autenticado como cliente, agregar "Mis Créditos"
-    if (isAuthenticated && user?.role === 'client') {
-      creditosSubItems.push({
-        label: 'Mis Créditos',
-        href: '/client/credits',
-        description: 'Ver mis créditos activos',
-      });
-    }
+    
 
     const inversionesSubItems = [
       {
