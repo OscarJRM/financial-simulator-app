@@ -35,7 +35,7 @@ export function AuthButtons({ isAuthenticated, userName, onLogout }: AuthButtons
         asChild
         className="hidden sm:flex"
       >
-        <Link href="/login">
+        <Link href="/register">
           Abre tu cuenta
         </Link>
       </Button>
