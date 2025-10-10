@@ -1,8 +1,5 @@
+import { InvestmentsView } from "@/features/investments/presentation/views/InvestmentsView";
 
 export default function PublicInvestmentsPage() {
-  return (
-    <div>
-      <h1>Public Investments Page</h1>
-    </div>
-  );
+  return <InvestmentsView />;
 }
