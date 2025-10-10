@@ -19,7 +19,7 @@ export default function AdminLayout({
 }) {
   return (
     <>
-      {/* <Navbar /> */}
+      {<Navbar />}
       {/* Aquí puedes agregar componentes específicos de admin como Sidebar */}
       {children}
     </>

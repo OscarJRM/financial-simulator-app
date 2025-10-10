@@ -1,3 +1,4 @@
+// src/features/Navbar/presentation/components/AuthButtons.tsx
 'use client';
 
 import Link from 'next/link';
@@ -6,16 +7,28 @@ import { Button } from '@/components/ui/button';
 interface AuthButtonsProps {
   isAuthenticated: boolean;
   userName?: string;
+  userRole?: 'client' | 'admin';
   onLogout?: () => void;
 }
 
-export function AuthButtons({ isAuthenticated, userName, onLogout }: AuthButtonsProps) {
+export function AuthButtons({ isAuthenticated, userName, userRole, onLogout }: AuthButtonsProps) {
   if (isAuthenticated) {
     return (
       <div className="flex items-center gap-4">
-        <span className="text-gray-700 hidden md:block">
-          Hola, <strong>{userName}</strong>
-        </span>
+        <div className="text-right hidden md:block">
+          <p className="text-gray-700">
+            Hola, <strong>{userName}</strong>
+          </p>
+          {userRole && (
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              userRole === 'admin' 
+                ? 'bg-purple-100 text-purple-800' 
+                : 'bg-green-100 text-green-800'
+            }`}>
+              {userRole === 'admin' ? 'Administrador' : 'Cliente'}
+            </span>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="sm"
