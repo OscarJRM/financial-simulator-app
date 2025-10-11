@@ -17,12 +17,113 @@ interface LoanType {
   imagen: string;
 }
 
+// Tipos de crédito predefinidos
+const PREDEFINED_LOAN_TYPES = {
+  hipotecario: {
+    nombre: 'Crédito Hipotecario',
+    descripcion: 'Se destina a la compra, construcción o remodelación de un bien inmueble.',
+    tipo: 'Hipotecario',
+    interes: 8.5,
+    tiempo: '60-360 meses',
+    solca: true,
+    gravamen: true,
+    informacion: 'Requiere garantía hipotecaria. Tasas preferenciales para vivienda.',
+    estado: true,
+    imagen: ''
+  },
+  automotriz: {
+    nombre: 'Crédito Automotriz',
+    descripcion: 'Se utiliza para la compra de vehículos nuevos o usados.',
+    tipo: 'Automotriz',
+    interes: 10.5,
+    tiempo: '12-84 meses',
+    solca: true,
+    gravamen: false,
+    informacion: 'Financiamiento para automóviles, motos y vehículos comerciales.',
+    estado: true,
+    imagen: ''
+  },
+  consumo: {
+    nombre: 'Crédito de Consumo',
+    descripcion: 'Cubre necesidades de bienes y servicios. Incluye tarjetas de crédito, crédito de nómina y crédito personal.',
+    tipo: 'Consumo',
+    interes: 15.0,
+    tiempo: '3-60 meses',
+    solca: false,
+    gravamen: false,
+    informacion: 'Ideal para gastos imprevistos, viajes, electrodomésticos y compras puntuales.',
+    estado: true,
+    imagen: ''
+  },
+  educativo: {
+    nombre: 'Crédito Educativo',
+    descripcion: 'Dirigido a financiar estudios universitarios, de posgrado o estancias de investigación.',
+    tipo: 'Educativo',
+    interes: 6.5,
+    tiempo: '12-120 meses',
+    solca: false,
+    gravamen: false,
+    informacion: 'Periodo de gracia durante los estudios. Tasas especiales para educación.',
+    estado: true,
+    imagen: ''
+  },
+  empresarial: {
+    nombre: 'Crédito Empresarial',
+    descripcion: 'Orientado a iniciar o hacer crecer un negocio. Incluye microcréditos para microempresas, pequeñas, medianas y grandes empresas.',
+    tipo: 'Empresarial',
+    interes: 12.0,
+    tiempo: '6-84 meses',
+    solca: true,
+    gravamen: true,
+    informacion: 'Capital de trabajo, maquinaria, equipos y expansión empresarial.',
+    estado: true,
+    imagen: ''
+  },
+  prendario: {
+    nombre: 'Crédito Prendario',
+    descripcion: 'Para la compra de un bien mueble que queda como garantía hasta que se liquide la deuda.',
+    tipo: 'Prendario',
+    interes: 11.0,
+    tiempo: '6-60 meses',
+    solca: true,
+    gravamen: false,
+    informacion: 'Joyas, electrodomésticos, equipos electrónicos como garantía.',
+    estado: true,
+    imagen: ''
+  },
+  avio: {
+    nombre: 'Crédito de Avío',
+    descripcion: 'Específico para la compra de materias primas, materiales y otros insumos relacionados con la producción inmediata.',
+    tipo: 'Avío',
+    interes: 9.0,
+    tiempo: '3-24 meses',
+    solca: true,
+    gravamen: true,
+    informacion: 'Sector agrícola e industrial. Financiamiento para insumos de producción.',
+    estado: true,
+    imagen: ''
+  },
+  personalizado: {
+    nombre: '',
+    descripcion: '',
+    tipo: '',
+    interes: 0,
+    tiempo: '',
+    solca: false,
+    gravamen: false,
+    informacion: '',
+    estado: true,
+    imagen: ''
+  }
+};
+
 export default function LoanTypesPage() {
   const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingLoan, setEditingLoan] = useState<LoanType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('personalizado'); // ✅ ESTADO AGREGADO
 
   // Estado inicial para nuevo crédito
   const emptyLoan: LoanType = {
@@ -44,6 +145,16 @@ export default function LoanTypesPage() {
   useEffect(() => {
     loadLoanTypes();
   }, []);
+
+  // Cuando se selecciona un template, cargar los datos
+  useEffect(() => {
+    if (selectedTemplate && selectedTemplate !== 'personalizado') {
+      const template = PREDEFINED_LOAN_TYPES[selectedTemplate as keyof typeof PREDEFINED_LOAN_TYPES];
+      setFormData(template);
+    } else if (selectedTemplate === 'personalizado') {
+      setFormData(emptyLoan);
+    }
+  }, [selectedTemplate]);
 
   const loadLoanTypes = async () => {
     try {
@@ -81,6 +192,7 @@ export default function LoanTypesPage() {
         setShowForm(false);
         setEditingLoan(null);
         setFormData(emptyLoan);
+        setSelectedTemplate('personalizado'); // ✅ RESETEAR TEMPLATE
       } else {
         throw new Error('Error al guardar');
       }
@@ -118,6 +230,7 @@ export default function LoanTypesPage() {
   const handleEdit = (loan: LoanType) => {
     setEditingLoan(loan);
     setFormData(loan);
+    setSelectedTemplate('personalizado'); // ✅ AL EDITAR, USAR PERSONALIZADO
     setShowForm(true);
   };
 
@@ -146,6 +259,7 @@ export default function LoanTypesPage() {
   const handleAddNew = () => {
     setEditingLoan(null);
     setFormData(emptyLoan);
+    setSelectedTemplate('personalizado'); // ✅ INICIAR CON PERSONALIZADO
     setShowForm(true);
   };
 
@@ -260,6 +374,34 @@ export default function LoanTypesPage() {
             <h2 className="text-xl font-bold mb-4">
               {editingLoan ? 'Editar Tipo de Crédito' : 'Nuevo Tipo de Crédito'}
             </h2>
+            
+            {/* ✅ SELECTOR DE PLANTILLAS - SOLO PARA NUEVOS CRÉDITOS */}
+            {!editingLoan && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Plantilla de crédito
+                </label>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="personalizado">Personalizado (llenar manualmente)</option>
+                  <option value="hipotecario">Crédito Hipotecario</option>
+                  <option value="automotriz">Crédito Automotriz</option>
+                  <option value="consumo">Crédito de Consumo</option>
+                  <option value="educativo">Crédito Educativo</option>
+                  <option value="empresarial">Crédito Empresarial</option>
+                  <option value="prendario">Crédito Prendario</option>
+                  <option value="avio">Crédito de Avío</option>
+                </select>
+                <p className="text-sm text-gray-600 mt-2">
+                  {selectedTemplate !== 'personalizado' && 
+                    `Se cargarán los datos del ${PREDEFINED_LOAN_TYPES[selectedTemplate as keyof typeof PREDEFINED_LOAN_TYPES].nombre}`}
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Información Básica */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -407,6 +549,7 @@ export default function LoanTypesPage() {
                     setShowForm(false);
                     setEditingLoan(null);
                     setFormData(emptyLoan);
+                    setSelectedTemplate('personalizado');
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
