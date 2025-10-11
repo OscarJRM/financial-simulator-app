@@ -1,3 +1,4 @@
+// src/features/Navbar/presentation/views/NavbarView.tsx
 'use client';
 
 import { useMemo } from 'react';
@@ -13,43 +14,121 @@ export function NavbarView() {
   const { isMenuOpen, activeSubmenu, toggleMenu, closeMenu, toggleSubmenu } = useNavbar();
   const { isAuthenticated, user, logout } = useAuth();
 
-  // Generar menú dinámicamente según el estado de autenticación
+  // Generar menú dinámicamente según el rol del usuario
   const menuItems: MenuItem[] = useMemo(() => {
-    const creditosSubItems = [
-      {
-        label: 'Simulador de Créditos',
-        href: '/loans',
-        description: 'Calcula tu tabla de amortización',
-      },
-    ];
-
-    
-
-    const inversionesSubItems = [
-      {
-        label: 'Simulador de Inversiones',
-        href: '/investments',
-        description: 'Planifica tu inversión',
-      },
-    ];
-
-    // Si está autenticado como cliente, agregar "Mis Inversiones"
-    if (isAuthenticated && user?.role === 'client') {
-      inversionesSubItems.push({
-        label: 'Mis Inversiones',
-        href: '/client/investments',
-        description: 'Ver mis inversiones activas',
-      });
+    // Menú para administradores
+    if (isAuthenticated && user?.role === 'admin') {
+      return [
+        {
+          label: 'Dashboard',
+          href: '/admin',
+          description: 'Panel principal de administración',
+        },
+        {
+          label: 'Configuración',
+          subItems: [
+            {
+              label: 'Información de la Institución',
+              href: '/admin/config/institution',
+              description: 'Configurar datos de la institución financiera',
+            },
+            {
+              label: 'Gestión de Créditos',
+              href: '/admin/config/loan-types',
+              description: 'Agregar y gestionar tipos de crédito',
+            },
+          ],
+        },
+        {
+          label: 'Créditos',
+          subItems: [
+            {
+              label: 'Simulador de Créditos',
+              href: '/loans',
+              description: 'Simulador de créditos para administración',
+            },
+          ],
+        },
+        {
+          label: 'Inversiones',
+          subItems: [
+            {
+              label: 'Configurar Inversiones',
+              href: '/admin/investments',
+              description: 'Gestionar productos de inversión',
+            },
+          ],
+        },
+        {
+          label: 'Usuarios',
+          href: '/admin/users',
+          description: 'Gestión de usuarios del sistema',
+        },
+      ];
     }
 
+    // Menú para clientes autenticados
+    if (isAuthenticated && user?.role === 'client') {
+      return [
+        {
+          label: 'Dashboard',
+          href: '/client/dashboard',
+          description: 'Mi panel principal',
+        },
+        {
+          label: 'Créditos',
+          subItems: [
+            {
+              label: 'Simulador de Créditos',
+              href: '/loans',
+              description: 'Calcula tu tabla de amortización',
+            },
+          ],
+        },
+        {
+          label: 'Inversiones',
+          subItems: [
+            {
+              label: 'Simulador de Inversiones',
+              href: '/investments',
+              description: 'Planifica tu inversión',
+            },
+            {
+              label: 'Mis Inversiones',
+              href: '/client/investments',
+              description: 'Ver mis inversiones activas',
+            },
+          ],
+        },
+        {
+          label: 'Mi Perfil',
+          href: '/client/profile',
+          description: 'Gestionar mi información personal',
+        },
+      ];
+    }
+
+    // Menú para usuarios no autenticados (público)
     return [
       {
         label: 'Créditos',
-        subItems: creditosSubItems,
+        subItems: [
+            {
+              label: 'Simulador de Créditos',
+              href: '/loans',
+              description: 'Calcula tu tabla de amortización',
+            },
+          ],
       },
       {
         label: 'Inversiones',
-        subItems: inversionesSubItems,
+        subItems: [
+          {
+            label: 'Simulador de Inversiones',
+            href: '/investments',
+            description: 'Planifica tu inversión',
+          },
+        ],
       },
     ];
   }, [isAuthenticated, user?.role]);
@@ -73,6 +152,7 @@ export function NavbarView() {
             <AuthButtons
               isAuthenticated={isAuthenticated}
               userName={user?.name}
+              userRole={user?.role} 
               onLogout={logout}
             />
           </div>

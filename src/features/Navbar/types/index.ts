@@ -19,3 +19,11 @@ export interface UserInfo {
   email: string;
   role: 'client' | 'admin';
 }
+
+// Agrega esta interfaz para AuthButtons
+export interface AuthButtonsProps {
+  isAuthenticated: boolean;
+  userName?: string;
+  userRole?: 'client' | 'admin'; // ← Agrega esta línea
+  onLogout: () => void;
+}

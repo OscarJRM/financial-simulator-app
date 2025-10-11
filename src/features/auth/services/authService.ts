@@ -1,61 +1,24 @@
+// src/features/auth/services/authService.ts
 import { LoginCredentials, LoginResponse } from '../types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-
 /**
- * Servicio de autenticación
- * TODO: Conectar con API real cuando esté disponible
+ * Servicio de autenticación - Usa API routes
  */
-
-/**
- * Realiza el login del usuario
- * Por ahora simula el login, pero está preparado para API con JWT
- */
-export async function loginUser(
-  credentials: LoginCredentials
-): Promise<LoginResponse> {
+export async function loginUser(credentials: LoginCredentials): Promise<LoginResponse> {
   try {
-    // TODO: Descomentar cuando tengas la API
-    // const response = await fetch(`${API_URL}/auth/login`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(credentials),
-    // });
-    // if (!response.ok) throw new Error('Credenciales inválidas');
-    // return await response.json();
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
 
-    // Simulación de login (Mock)
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simula delay de red
-
-    // Usuario de prueba - Admin
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      return {
-        token: 'mock-jwt-token-admin-12345',
-        user: {
-          id: '1',
-          username: 'admin',
-          email: 'admin@example.com',
-          role: 'admin',
-          name: 'Administrador',
-        },
-      };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Credenciales inválidas');
     }
 
-    // Usuario de prueba - Cliente
-    if (credentials.username === 'cliente' && credentials.password === 'cliente123') {
-      return {
-        token: 'mock-jwt-token-client-67890',
-        user: {
-          id: '2',
-          username: 'cliente',
-          email: 'cliente@example.com',
-          role: 'client',
-          name: 'Juan Pérez',
-        },
-      };
-    }
+    return await response.json();
 
-    throw new Error('Credenciales inválidas');
   } catch (error) {
     console.error('Error en login:', error);
     throw error;
@@ -67,15 +30,6 @@ export async function loginUser(
  */
 export async function logoutUser(): Promise<void> {
   try {
-    // TODO: Descomentar cuando tengas la API
-    // await fetch(`${API_URL}/auth/logout`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Bearer ${token}`,
-    //   },
-    // });
-
-    // Por ahora solo limpia el localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
@@ -90,17 +44,21 @@ export async function logoutUser(): Promise<void> {
  */
 export async function verifyToken(token: string): Promise<boolean> {
   try {
-    // TODO: Descomentar cuando tengas la API
-    // const response = await fetch(`${API_URL}/auth/verify`, {
-    //   headers: {
-    //     'Authorization': `Bearer ${token}`,
-    //   },
-    // });
-    // return response.ok;
-
-    // Mock: cualquier token es válido por ahora
-    return token.startsWith('mock-jwt-token');
+    // Verificación simple del token
+    const tokenData = decodeToken(token);
+    return !!tokenData;
   } catch (error) {
     return false;
+  }
+}
+
+/**
+ * Decodifica el token
+ */
+function decodeToken(token: string): any {
+  try {
+    return JSON.parse(Buffer.from(token, 'base64').toString());
+  } catch (error) {
+    return null;
   }
 }
