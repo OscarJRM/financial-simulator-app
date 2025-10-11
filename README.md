@@ -33,6 +33,8 @@ Se recomienda investigar simuladores de inversiones de bancos y cooperativas par
 2. Instala las dependencias:
 	```bash
 	npm install
+ 	npm install mysql2
+	npm install jspdf html2canvas xlsx file-saver
 	```
 
 3. Inicia el servidor de desarrollo:
