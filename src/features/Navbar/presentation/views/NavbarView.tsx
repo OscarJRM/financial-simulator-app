@@ -33,7 +33,7 @@ export function NavbarView() {
               description: 'Configurar datos de la institución financiera',
             },
             {
-              label: 'Tipos de Crédito',
+              label: 'Gestión de Créditos',
               href: '/admin/config/loan-types',
               description: 'Agregar y gestionar tipos de crédito',
             },
@@ -44,13 +44,8 @@ export function NavbarView() {
           subItems: [
             {
               label: 'Simulador de Créditos',
-              href: '/admin/loans/simulator',
+              href: '/loans',
               description: 'Simulador de créditos para administración',
-            },
-            {
-              label: 'Gestión de Créditos',
-              href: '/admin/loans',
-              description: 'Gestionar todos los créditos del sistema',
             },
           ],
         },
@@ -87,11 +82,6 @@ export function NavbarView() {
               label: 'Simulador de Créditos',
               href: '/loans',
               description: 'Calcula tu tabla de amortización',
-            },
-            {
-              label: 'Mis Créditos',
-              href: '/client/loans',
-              description: 'Ver mis créditos activos',
             },
           ],
         },
