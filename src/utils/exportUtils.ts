@@ -52,13 +52,8 @@ const addWatermark = (pdf: jsPDF, institution: Institution | null) => {
   const pageWidth = pdf.internal.pageSize.width;
   const pageHeight = pdf.internal.pageSize.height;
   
-  // Guardar estado actual
   pdf.saveGraphicsState();
-  
-  // Configurar transparencia
   pdf.setGState(new (pdf as any).GState({ opacity: 0.1 }));
-  
-  // Configurar texto de marca de agua
   pdf.setFontSize(60);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(200, 200, 200);
@@ -66,14 +61,12 @@ const addWatermark = (pdf: jsPDF, institution: Institution | null) => {
   const watermarkText = institution?.nombre || 'SIMULACIÓN';
   const textWidth = pdf.getTextWidth(watermarkText);
   
-  // Rotar texto 45 grados y posicionar en el centro
   pdf.text(watermarkText, 
     (pageWidth - textWidth) / 2, 
     pageHeight / 2,
     { angle: 45 }
   );
   
-  // Restaurar estado
   pdf.restoreGraphicsState();
 };
 
@@ -91,7 +84,7 @@ export const exportToPDF = async (
   try {
     const institution = await getInstitutionData();
     const nombreEmpresa = institution?.nombre || 'Institución Financiera';
-    const colorPrimario = institution?.color_primario || '#1e40af';
+    const colorPrimario = institution?.color_primario || '#001f83';
     const colorSecundario = institution?.color_secundario || '#1e3a8a';
     const colorTitulo = '#1f2937'; // Gris oscuro para títulos
     const colorTexto = '#374151'; // Gris medio para texto normal
@@ -102,9 +95,7 @@ export const exportToPDF = async (
     const margin = 20;
     const pageWidth = pdf.internal.pageSize.width;
     const pageHeight = pdf.internal.pageSize.height;
-    const [r, g, b] = hexToRgb(colorPrimario);
 
-    // Agregar marca de agua en todas las páginas
     const addWatermarkToAllPages = () => {
       const pageCount = pdf.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
@@ -113,7 +104,6 @@ export const exportToPDF = async (
       }
     };
 
-    // Manejo de salto de página
     const checkPageBreak = (requiredHeight: number = lineHeight) => {
       if (yPosition + requiredHeight > pageHeight - 15) {
         pdf.addPage();
@@ -123,18 +113,23 @@ export const exportToPDF = async (
       return false;
     };
 
-    // Función para agregar texto al PDF
-    const addText = (text: string, fontSize = 12, isBold = false, x = margin, customY?: number, color: string = colorTexto, align: 'left' | 'center' | 'right' = 'left') => {
+    const addText = (
+      text: string,
+      fontSize = 12,
+      isBold = false,
+      x = margin,
+      customY?: number,
+      color: string = colorTexto,
+      align: 'left' | 'center' | 'right' = 'left'
+    ) => {
       if (customY !== undefined) yPosition = customY;
       checkPageBreak();
-      
+
       pdf.setFontSize(fontSize);
       pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
-      
-      if (color) {
-        const [r, g, b] = hexToRgb(color);
-        pdf.setTextColor(r, g, b);
-      }
+
+      const [r, g, b] = hexToRgb(color);
+      pdf.setTextColor(r, g, b);
 
       let xPosition = x;
       if (align === 'center') {
@@ -146,38 +141,34 @@ export const exportToPDF = async (
       }
 
       pdf.text(text, xPosition, yPosition);
-      pdf.setTextColor(0, 0, 0); // Reset color
+      pdf.setTextColor(0, 0, 0);
       yPosition += lineHeight;
     };
 
-    // Función para dibujar rectángulo con color
     const drawRect = (x: number, y: number, width: number, height: number, color: string) => {
       const [r, g, b] = hexToRgb(color);
       pdf.setFillColor(r, g, b);
       pdf.rect(x, y, width, height, 'F');
     };
 
-    // --- ENCABEZADO CON COLOR ---
+    // --- ENCABEZADO ---
     drawRect(0, 0, pageWidth, 45, colorPrimario);
-    
-    // Logo (si existe) - en esquina superior izquierda
+
     if (institution?.logo) {
       try {
-        // Espacio reservado para logo - implementar si tienes la imagen en base64
+        // Implementar si tienes la imagen en base64
         // pdf.addImage(institution.logo, 'PNG', margin, 8, 25, 25);
-      } catch (error) {
+      } catch {
         console.warn('No se pudo cargar el logo');
       }
     }
 
-    // Título principal centrado - Blanco sobre fondo color
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(18);
     pdf.setFont('helvetica', 'bold');
     const titleWidth = pdf.getTextWidth(nombreEmpresa.toUpperCase());
     pdf.text(nombreEmpresa.toUpperCase(), (pageWidth - titleWidth) / 2, 20);
-    
-    // Slogan - Blanco sobre fondo color
+
     if (institution?.slogan) {
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
@@ -185,7 +176,6 @@ export const exportToPDF = async (
       pdf.text(institution.slogan, (pageWidth - sloganWidth) / 2, 30);
     }
 
-    // Subtítulo del reporte
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     const subtitleWidth = pdf.getTextWidth('SIMULACIÓN DE CRÉDITO');
@@ -194,79 +184,57 @@ export const exportToPDF = async (
     pdf.setTextColor(0, 0, 0);
     yPosition = 60;
 
-    // --- RESUMEN EN COLUMNAS ---
+    // --- RESUMEN ---
     addText('RESUMEN DEL CRÉDITO', 16, true, margin, yPosition, colorTitulo, 'center');
     yPosition += 12;
 
-    // Crear dos columnas para el resumen
     const col1X = margin;
     const col2X = pageWidth / 2 + 10;
     let currentCol1Y = yPosition;
     let currentCol2Y = yPosition;
 
-    // Columna 1 - Títulos en negrita y oscuros
-    addText(`Tipo de Crédito:`, 10, true, col1X, currentCol1Y, colorTitulo);
-    addText(loan.nombre, 10, false, col1X + 40, currentCol1Y);
-    currentCol1Y += lineHeight;
+    const addRow = (label: string, value: string, colX: number, colY: number, valueOffset = 40) => {
+      addText(label, 10, true, colX, colY, colorTitulo);
+      addText(value, 10, false, colX + valueOffset, colY);
+      return colY + lineHeight;
+    };
 
-    addText(`Sistema:`, 10, true, col1X, currentCol1Y, colorTitulo);
-    addText(tipoAmortizacion === 'frances' ? 'Francés' : 'Alemán', 10, false, col1X + 40, currentCol1Y);
-    currentCol1Y += lineHeight;
+    currentCol1Y = addRow('Tipo de Crédito:', loan.nombre, col1X, currentCol1Y);
+    currentCol1Y = addRow('Sistema:', tipoAmortizacion === 'frances' ? 'Francés' : 'Alemán', col1X, currentCol1Y);
+    currentCol1Y = addRow('Monto:', `$${monto.toLocaleString()}`, col1X, currentCol1Y);
+    currentCol1Y = addRow('Tasa Anual:', `${tasaInteres}%`, col1X, currentCol1Y);
+    currentCol1Y = addRow('Plazo:', `${plazo} meses`, col1X, currentCol1Y);
 
-    addText(`Monto:`, 10, true, col1X, currentCol1Y, colorTitulo);
-    addText(`$${monto.toLocaleString()}`, 10, false, col1X + 40, currentCol1Y);
-    currentCol1Y += lineHeight;
-
-    addText(`Tasa Anual:`, 10, true, col1X, currentCol1Y, colorTitulo);
-    addText(`${tasaInteres}%`, 10, false, col1X + 40, currentCol1Y);
-    currentCol1Y += lineHeight;
-
-    addText(`Plazo:`, 10, true, col1X, currentCol1Y, colorTitulo);
-    addText(`${plazo} meses`, 10, false, col1X + 40, currentCol1Y);
-    currentCol1Y += lineHeight;
-
-    // Columna 2 - Títulos en negrita y oscuros
-    addText(`Cuota Base:`, 10, true, col2X, currentCol2Y, colorTitulo);
-    addText(`$${resultado.cuotaMensual.toFixed(2)}`, 10, false, col2X + 35, currentCol2Y);
-    currentCol2Y += lineHeight;
-
+    currentCol2Y = addRow('Cuota Base:', `$${resultado.cuotaMensual.toFixed(2)}`, col2X, currentCol2Y);
     if (resultado.cobrosIndirectosMensuales > 0) {
-      addText(`Cobros Indirectos:`, 10, true, col2X, currentCol2Y, colorTitulo);
-      addText(`$${resultado.cobrosIndirectosMensuales.toFixed(2)}`, 10, false, col2X + 35, currentCol2Y);
-      currentCol2Y += lineHeight;
+      currentCol2Y = addRow('Cobros Indirectos:', `$${resultado.cobrosIndirectosMensuales.toFixed(2)}`, col2X, currentCol2Y);
     }
+    currentCol2Y = addRow('Cuota Final:', `$${resultado.cuotaFinal.toFixed(2)}`, col2X, currentCol2Y);
+    currentCol2Y = addRow('Total Intereses:', `$${resultado.totalInteres.toFixed(2)}`, col2X, currentCol2Y);
+    currentCol2Y = addRow('Total a Pagar:', `$${resultado.totalPagar.toFixed(2)}`, col2X, currentCol2Y);
 
-    addText(`Cuota Final:`, 10, true, col2X, currentCol2Y, colorSecundario);
-    addText(`$${resultado.cuotaFinal.toFixed(2)}`, 10, true, col2X + 35, currentCol2Y, colorSecundario);
-    currentCol2Y += lineHeight;
-
-    addText(`Total Intereses:`, 10, true, col2X, currentCol2Y, colorTitulo);
-    addText(`$${resultado.totalInteres.toFixed(2)}`, 10, false, col2X + 35, currentCol2Y);
-    currentCol2Y += lineHeight;
-
-    addText(`Total a Pagar:`, 10, true, col2X, currentCol2Y, colorSecundario);
-    addText(`$${resultado.totalPagar.toFixed(2)}`, 10, true, col2X + 35, currentCol2Y, colorSecundario);
-
-    // Usar la posición más baja de las dos columnas
     yPosition = Math.max(currentCol1Y, currentCol2Y) + 12;
 
     // --- COBROS INDIRECTOS ---
     if (loan.cobros_indirectos?.length) {
       addText('COBROS INDIRECTOS INCLUIDOS', 12, true, margin, yPosition, colorTitulo);
-      yPosition += 8;
+      yPosition += lineHeight;
 
-      loan.cobros_indirectos.forEach((cobro, index) => {
-        addText(`• ${cobro.nombre}:`, 9, true, margin, yPosition, colorTitulo);
+      loan.cobros_indirectos.forEach((cobro) => {
+        const rowY = yPosition;
+        addText(`• ${cobro.nombre}:`, 9, true, margin, rowY, colorTitulo);
         addText(
-          `${cobro.tipo_interes === 'porcentaje' ? `${cobro.interes}%` : `$${cobro.interes}`}`,
+          cobro.tipo_interes === 'porcentaje' ? `${cobro.interes}%` : `$${cobro.interes}`,
           9,
           false,
-          margin + 50,
-          yPosition
+          margin + 55,
+          rowY,
+          colorTexto
         );
-        yPosition += lineHeight - 2;
+        yPosition += lineHeight - 1;
       });
-      yPosition += 8;
+
+      yPosition += 4;
     }
 
     // --- TABLA DE AMORTIZACIÓN ---
@@ -274,7 +242,6 @@ export const exportToPDF = async (
     addText('TABLA DE AMORTIZACIÓN', 16, true, margin, yPosition, colorTitulo, 'center');
     yPosition += 12;
 
-    // Encabezado de tabla con color oscuro
     const tableTop = yPosition;
     const columns = [
       { header: 'Mes', width: 15 },
@@ -287,15 +254,13 @@ export const exportToPDF = async (
       { header: 'Saldo Final', width: 25 }
     ];
 
-    // Fondo del encabezado - color oscuro
     drawRect(margin - 2, tableTop - 5, 174, 8, colorTitulo);
 
-    // Texto del encabezado - blanco sobre fondo oscuro
     let xPosition = margin;
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(255, 255, 255);
-    
+
     columns.forEach(col => {
       pdf.text(col.header, xPosition, tableTop);
       xPosition += col.width;
@@ -304,11 +269,8 @@ export const exportToPDF = async (
     pdf.setTextColor(0, 0, 0);
     yPosition = tableTop + 8;
 
-    // Función para dibujar fila
     const drawTableRow = (fila: AmortizationRow, isEven: boolean) => {
       checkPageBreak();
-      
-      // Fondo alternado para filas
       if (isEven) {
         pdf.setFillColor(250, 250, 250);
         pdf.rect(margin - 2, yPosition - 4, 174, 6, 'F');
@@ -322,10 +284,10 @@ export const exportToPDF = async (
         { text: fila.mes.toString(), color: colorTexto },
         { text: `$${fila.saldoInicial.toFixed(2)}`, color: colorTexto },
         { text: `$${fila.pago.toFixed(2)}`, color: colorTexto },
-        { text: `$${fila.interes.toFixed(2)}`, color: '#dc2626' }, // Rojo para intereses
-        { text: `$${fila.capital.toFixed(2)}`, color: '#16a34a' }, // Verde para capital
-        { text: `$${fila.cobrosIndirectos.toFixed(2)}`, color: '#ea580c' }, // Naranja para cobros indirectos
-        { text: `$${fila.pagoTotal.toFixed(2)}`, color: colorSecundario }, // Color secundario para pago total
+        { text: `$${fila.interes.toFixed(2)}`, color: colorTexto },
+        { text: `$${fila.capital.toFixed(2)}`, color: colorTexto },
+        { text: `$${fila.cobrosIndirectos.toFixed(2)}`, color: colorTexto },
+        { text: `$${fila.pagoTotal.toFixed(2)}`, color: '#16a34a' },
         { text: `$${fila.saldoFinal.toFixed(2)}`, color: colorTexto }
       ];
 
@@ -339,52 +301,32 @@ export const exportToPDF = async (
       pdf.setTextColor(0, 0, 0);
       yPosition += 6;
 
-      // Línea separadora suave
       pdf.setDrawColor(229, 231, 235);
       pdf.line(margin, yPosition - 1, margin + 170, yPosition - 1);
     };
 
-    // Dibujar todas las filas
     resultado.tablaAmortizacion.forEach((fila, index) => {
       drawTableRow(fila, index % 2 === 0);
     });
 
     // --- PIE DE PÁGINA ---
     checkPageBreak(25);
-    
-    // Línea separadora con color primario
     pdf.setDrawColor(...hexToRgb(colorPrimario));
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 10;
 
-    // Información de la institución en columnas
     const footerCol1 = margin;
     const footerCol2 = pageWidth / 2;
 
     if (institution) {
-      // Título del pie de página
       addText('INFORMACIÓN DE CONTACTO', 10, true, margin, yPosition, colorTitulo, 'center');
       yPosition += 8;
 
-      if (institution.direccion) {
-        addText('Dirección:', 8, true, footerCol1, yPosition, colorTitulo);
-        addText(institution.direccion, 8, false, footerCol1 + 20, yPosition);
-      }
-      
-      if (institution.telefono) {
-        addText('Teléfono:', 8, true, footerCol2, yPosition, colorTitulo);
-        addText(institution.telefono, 8, false, footerCol2 + 20, yPosition);
-        yPosition += 5;
-      }
-      
-      if (institution.correo) {
-        addText('Email:', 8, true, footerCol1, yPosition, colorTitulo);
-        addText(institution.correo, 8, false, footerCol1 + 20, yPosition);
-        yPosition += 5;
-      }
+      if (institution.direccion) yPosition = addRow('Dirección:', institution.direccion, footerCol1, yPosition, 20);
+      if (institution.telefono) yPosition = addRow('Teléfono:', institution.telefono, footerCol2, yPosition, 20);
+      if (institution.correo) yPosition = addRow('Email:', institution.correo, footerCol1, yPosition, 20);
     }
 
-    // Fecha de generación
     yPosition += 5;
     addText(`Documento generado el ${new Date().toLocaleDateString('es-ES', { 
       year: 'numeric', 
@@ -394,10 +336,8 @@ export const exportToPDF = async (
       minute: '2-digit'
     })}`, 8, false, margin, yPosition, '#6b7280', 'center');
 
-    // Agregar marca de agua a todas las páginas
     addWatermarkToAllPages();
 
-    // Guardar PDF
     const fileName = `Simulación_Crédito_${loan.nombre.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().getTime()}.pdf`;
     pdf.save(fileName);
 
@@ -406,8 +346,9 @@ export const exportToPDF = async (
     throw new Error('Error al generar el PDF. Por favor, intente nuevamente.');
   }
 };
+
 /**
- * Exporta la simulación de crédito a Excel (sin cambios)
+ * Exporta la simulación a Excel (igual que antes, ajustando alineación)
  */
 export const exportToExcel = async (
   resultado: SimulationResult,
@@ -421,76 +362,97 @@ export const exportToExcel = async (
     const institution = await getInstitutionData();
     const nombreEmpresa = institution?.nombre || 'Institución Financiera';
 
-    const datosExcel: any[][] = [
+    const wb = utils.book_new();
+
+    // Resumen
+    const resumenData: any[][] = [
       [nombreEmpresa.toUpperCase()],
       institution?.slogan ? [institution.slogan] : [''],
-      ['RESUMEN DE SIMULACIÓN DE CRÉDITO'],
+      ['SIMULACIÓN DE CRÉDITO'],
       [''],
       ['RESUMEN DEL CRÉDITO'],
       ['Tipo de Crédito:', loan.nombre],
-      ['Sistema:', tipoAmortizacion === 'frances' ? 'Francés' : 'Alemán'],
-      ['Monto:', `$${monto.toLocaleString()}`],
-      ['Tasa de Interés:', `${tasaInteres}% anual`],
-      ['Plazo:', `${plazo} meses`]
+      ['Sistema de Amortización:', tipoAmortizacion === 'frances' ? 'Francés (Cuota Constante)' : 'Alemán (Amortización Constante)'],
+      ['Monto del Crédito:', `$${monto.toLocaleString()}`],
+      ['Tasa de Interés Anual:', `${tasaInteres}%`],
+      ['Plazo:', `${plazo} meses`],
+      [''],
+      ['DETALLE DE PAGOS'],
+      ['Cuota Base Mensual:', `$${resultado.cuotaMensual.toFixed(2)}`]
     ];
 
+    if (resultado.cobrosIndirectosMensuales > 0) {
+      resumenData.push(['Cobros Indirectos Mensuales:', `$${resultado.cobrosIndirectosMensuales.toFixed(2)}`]);
+    }
+
+    resumenData.push(
+      ['Cuota Final Mensual:', `$${resultado.cuotaFinal.toFixed(2)}`],
+      ['Total de Intereses:', `$${resultado.totalInteres.toFixed(2)}`],
+      ['Total a Pagar:', `$${resultado.totalPagar.toFixed(2)}`]
+    );
+
     if (loan.cobros_indirectos?.length) {
-      datosExcel.push(['Cobros Indirectos:', '']);
+      resumenData.push(['']);
+      resumenData.push(['COBROS INDIRECTOS INCLUIDOS']);
       loan.cobros_indirectos.forEach(cobro => {
-        datosExcel.push(['', `${cobro.nombre}: ${cobro.tipo_interes === 'porcentaje' ? `${cobro.interes}%` : `$${cobro.interes}`}`]);
+        resumenData.push([`${cobro.nombre}:`, `${cobro.tipo_interes === 'porcentaje' ? `${cobro.interes}% del monto` : `$${cobro.interes} fijos`}`]);
       });
     }
 
-    datosExcel.push(
-      ['Cuota Base:', `$${resultado.cuotaMensual.toFixed(2)}`],
-      ['Cobros Indirectos Mensuales:', `$${resultado.cobrosIndirectosMensuales.toFixed(2)}`],
-      ['Cuota Final:', `$${resultado.cuotaFinal.toFixed(2)}`],
-      ['Total Intereses:', `$${resultado.totalInteres.toFixed(2)}`],
-      ['Total a Pagar:', `$${resultado.totalPagar.toFixed(2)}`],
-      [''],
-      ['TABLA DE AMORTIZACIÓN'],
-      ['Mes', 'Saldo Inicial', 'Pago Base', 'Interés', 'Capital', 'Cobros Ind.', 'Pago Total', 'Saldo Final']
-    );
-
-    resultado.tablaAmortizacion.forEach(fila => {
-      datosExcel.push([
-        fila.mes.toString(),
-        `$${fila.saldoInicial.toFixed(2)}`,
-        `$${fila.pago.toFixed(2)}`,
-        `$${fila.interes.toFixed(2)}`,
-        `$${fila.capital.toFixed(2)}`,
-        `$${fila.cobrosIndirectos.toFixed(2)}`,
-        `$${fila.pagoTotal.toFixed(2)}`,
-        `$${fila.saldoFinal.toFixed(2)}`
-      ]);
-    });
-
-    // Información de la institución
-    datosExcel.push(['']);
-    datosExcel.push(['INFORMACIÓN DE LA INSTITUCIÓN']);
+    resumenData.push(['']);
+    resumenData.push(['INFORMACIÓN DE CONTACTO']);
     if (institution) {
-      if (institution.direccion) datosExcel.push(['Dirección:', institution.direccion]);
-      if (institution.telefono) datosExcel.push(['Teléfono:', institution.telefono]);
-      if (institution.correo) datosExcel.push(['Email:', institution.correo]);
+      if (institution.direccion) resumenData.push(['Dirección:', institution.direccion]);
+      if (institution.telefono) resumenData.push(['Teléfono:', institution.telefono]);
+      if (institution.correo) resumenData.push(['Correo Electrónico:', institution.correo]);
     }
-    datosExcel.push(['Generado el:', new Date().toLocaleDateString()]);
+    resumenData.push(['']);
+    resumenData.push(['Documento generado el:', new Date().toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })]);
 
-    // Crear libro de trabajo
-    const wb = utils.book_new();
-    const ws = utils.aoa_to_sheet(datosExcel);
+    const wsResumen = utils.aoa_to_sheet(resumenData);
+    wsResumen['!cols'] = [{ width: 25 }, { width: 35 }];
+    if (!wsResumen['!merges']) wsResumen['!merges'] = [];
+    wsResumen['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }); // título principal merge
+    wb.SheetNames.push('Resumen');
+    wb.Sheets['Resumen'] = wsResumen;
 
-    if (!ws['!cols']) ws['!cols'] = [];
-    ws['!cols'] = [
-      { width: 12 }, { width: 18 }, { width: 15 }, { width: 15 },
-      { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }
+    // Tabla de amortización
+    const tablaHeader = [
+      'Mes',
+      'Saldo Inicial',
+      'Pago Base',
+      'Interés',
+      'Capital',
+      'Cobros Indirectos',
+      'Pago Total',
+      'Saldo Final'
     ];
+    const tablaRows = resultado.tablaAmortizacion.map(fila => [
+      fila.mes,
+      fila.saldoInicial,
+      fila.pago,
+      fila.interes,
+      fila.capital,
+      fila.cobrosIndirectos,
+      fila.pagoTotal,
+      fila.saldoFinal
+    ]);
 
-    utils.book_append_sheet(wb, ws, 'Amortización');
-    const fileName = `SIMULACION_CREDITO_${loan.nombre.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.xlsx`;
+    const wsTabla = utils.aoa_to_sheet([tablaHeader, ...tablaRows]);
+    wb.SheetNames.push('Amortización');
+    wb.Sheets['Amortización'] = wsTabla;
+
+    const fileName = `Simulación_Crédito_${loan.nombre.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().getTime()}.xlsx`;
     writeFile(wb, fileName);
 
   } catch (error) {
     console.error('Error generando Excel:', error);
-    throw new Error('Error al generar el Excel');
+    throw new Error('Error al generar el Excel. Por favor, intente nuevamente.');
   }
 };
