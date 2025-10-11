@@ -2,6 +2,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { utils, writeFile } from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface LoanType {
   id_credito: number;
@@ -83,9 +87,9 @@ export default function LoansPage() {
 
   const calcularAmortizacionFrancesa = (monto: number, tasaMensual: number, plazoMeses: number) => {
     // Fórmula de amortización francesa (cuota constante)
-    const cuotaMensual = monto * (tasaMensual * Math.pow(1 + tasaMensual, plazoMeses)) / 
-                        (Math.pow(1 + tasaMensual, plazoMeses) - 1);
-    
+    const cuotaMensual = monto * (tasaMensual * Math.pow(1 + tasaMensual, plazoMeses)) /
+      (Math.pow(1 + tasaMensual, plazoMeses) - 1);
+
     let saldo = monto;
     const tabla: AmortizationRow[] = [];
     let totalInteres = 0;
@@ -94,7 +98,7 @@ export default function LoansPage() {
       const interes = saldo * tasaMensual;
       const capital = cuotaMensual - interes;
       const saldoFinal = saldo - capital;
-      
+
       totalInteres += interes;
 
       tabla.push({
@@ -124,7 +128,7 @@ export default function LoansPage() {
       const capital = amortizacionConstante;
       const cuotaMensual = interes + capital;
       const saldoFinal = saldo - capital;
-      
+
       totalInteres += interes;
 
       tabla.push({
@@ -145,13 +149,13 @@ export default function LoansPage() {
 
   const calcularAmortizacion = () => {
     setCalculando(true);
-    
+
     setTimeout(() => {
       // Convertir tasa anual a mensual
       const tasaMensual = tasaInteres / 100 / 12;
-      
+
       let resultadoCalculo;
-      
+
       if (tipoAmortizacion === 'frances') {
         resultadoCalculo = calcularAmortizacionFrancesa(monto, tasaMensual, plazo);
       } else {
@@ -167,13 +171,212 @@ export default function LoansPage() {
       setCalculando(false);
     }, 500);
   };
-
   const exportarPDF = () => {
-    alert('Funcionalidad de exportación PDF en desarrollo');
-  };
+    if (!resultado) return;
 
+    try {
+      // Pedir nombre o empresa al usuario
+      const nombreEmpresa = prompt('Por favor ingrese su nombre o empresa para generar el archivo:');
+
+      if (nombreEmpresa === null) return;
+      const nombreFinal = nombreEmpresa.trim() || 'Cliente';
+
+      // Crear PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let yPosition = 20;
+      const lineHeight = 7;
+      const margin = 15;
+      const pageHeight = pdf.internal.pageSize.height;
+
+      // Función para verificar y agregar nueva página si es necesario
+      const checkPageBreak = (requiredHeight: number = lineHeight) => {
+        if (yPosition + requiredHeight > pageHeight - 10) {
+          pdf.addPage();
+          yPosition = 20;
+          return true;
+        }
+        return false;
+      };
+
+      // Función para agregar texto
+      const addText = (text: string, fontSize = 12, isBold = false, x = margin, customY?: number) => {
+        if (customY !== undefined) {
+          yPosition = customY;
+        }
+        checkPageBreak();
+
+        pdf.setFontSize(fontSize);
+        pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
+        pdf.text(text, x, yPosition);
+        yPosition += lineHeight;
+      };
+
+      // Título
+      addText('RESUMEN DE SIMULACIÓN DE CRÉDITO', 16, true);
+      addText(nombreFinal, 14, false);
+      addText('', 12);
+
+      // Resumen del crédito
+      addText('RESUMEN DEL CRÉDITO', 14, true);
+      addText(`Tipo de Crédito: ${selectedLoan === 'personalizado' ? 'Personalizado' : loanTypes.find(l => l.id_credito.toString() === selectedLoan)?.nombre}`, 10);
+      addText(`Sistema: ${tipoAmortizacion === 'frances' ? 'Francés' : 'Alemán'}`, 10);
+      addText(`Monto: $${monto.toLocaleString()}`, 10);
+      addText(`Tasa de Interés: ${tasaInteres}% anual`, 10);
+      addText(`Plazo: ${plazo} meses`, 10);
+      addText(`Cuota Mensual: $${resultado.cuotaMensual.toFixed(2)}`, 10);
+      addText(`Total Intereses: $${resultado.totalInteres.toFixed(2)}`, 10);
+      addText(`Total a Pagar: $${resultado.totalPagar.toFixed(2)}`, 10);
+      addText('', 12);
+
+      // Encabezados de la tabla
+      addText('TABLA DE AMORTIZACIÓN', 12, true);
+
+      // Definir columnas
+      const columns = [
+        { header: 'Mes', width: 15 },
+        { header: 'Saldo Inicial', width: 30 },
+        { header: 'Pago', width: 25 },
+        { header: 'Interés', width: 25 },
+        { header: 'Capital', width: 25 },
+        { header: 'Saldo Final', width: 30 }
+      ];
+
+      // Dibujar encabezados de tabla
+      let xPosition = margin;
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+
+      columns.forEach((col, index) => {
+        pdf.text(col.header, xPosition, yPosition);
+        xPosition += col.width;
+      });
+
+      yPosition += lineHeight;
+
+      // Dibujar línea separadora
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, yPosition - 2, margin + 150, yPosition - 2);
+      yPosition += 2;
+
+      // Función para dibujar una fila de la tabla
+      const drawTableRow = (fila: AmortizationRow) => {
+        checkPageBreak();
+
+        xPosition = margin;
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'normal');
+
+        const rowData = [
+          fila.mes.toString(),
+          `$${fila.saldoInicial.toFixed(2)}`,
+          `$${fila.pago.toFixed(2)}`,
+          `$${fila.interes.toFixed(2)}`,
+          `$${fila.capital.toFixed(2)}`,
+          `$${fila.saldoFinal.toFixed(2)}`
+        ];
+
+        columns.forEach((col, index) => {
+          pdf.text(rowData[index], xPosition, yPosition);
+          xPosition += col.width;
+        });
+
+        yPosition += lineHeight;
+
+        // Dibujar línea separadora entre filas
+        pdf.setDrawColor(240, 240, 240);
+        pdf.line(margin, yPosition - 2, margin + 150, yPosition - 2);
+      };
+
+      // Dibujar todas las filas de la tabla
+      resultado.tablaAmortizacion.forEach((fila, index) => {
+        drawTableRow(fila);
+      });
+
+      // Pie de página
+      checkPageBreak(10);
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text(`Generado el ${new Date().toLocaleDateString()} - Simulador de Créditos`, margin, pageHeight - 10);
+
+      // Descargar directamente sin mostrar
+      const fileName = `RESUMEN_SIMULACION_CREDITO_${nombreFinal.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().getTime()}.pdf`;
+      pdf.save(fileName);
+
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+    }
+  };
   const exportarExcel = () => {
-    alert('Funcionalidad de exportación Excel en desarrollo');
+    if (!resultado) return;
+
+    try {
+      // Pedir nombre o empresa al usuario
+      const nombreEmpresa = prompt('Por favor ingrese su nombre o empresa para generar el archivo:');
+
+      // Si el usuario cancela o no ingresa nada, usar un valor por defecto
+      if (nombreEmpresa === null) return; // Usuario canceló
+      const nombreFinal = nombreEmpresa.trim() || 'Cliente';
+
+      // Crear datos para el Excel
+      const datosExcel = [
+        // Encabezado con nombre/empresa
+        ['RESUMEN DE SIMULACIÓN DE CRÉDITO'],
+        [nombreFinal],
+        [''],
+        ['RESUMEN DEL CRÉDITO'],
+        ['Tipo de Crédito:', selectedLoan === 'personalizado' ? 'Personalizado' : loanTypes.find(l => l.id_credito.toString() === selectedLoan)?.nombre],
+        ['Sistema:', tipoAmortizacion === 'frances' ? 'Francés' : 'Alemán'],
+        ['Monto:', `$${monto.toLocaleString()}`],
+        ['Tasa de Interés:', `${tasaInteres}% anual`],
+        ['Plazo:', `${plazo} meses`],
+        ['Cuota Mensual:', `$${resultado.cuotaMensual.toFixed(2)}`],
+        ['Total Intereses:', `$${resultado.totalInteres.toFixed(2)}`],
+        ['Total a Pagar:', `$${resultado.totalPagar.toFixed(2)}`],
+        [''],
+        ['TABLA DE AMORTIZACIÓN'],
+        ['Mes', 'Saldo Inicial', 'Pago', 'Interés', 'Capital', 'Saldo Final']
+      ];
+
+      // Agregar filas de amortización
+      resultado.tablaAmortizacion.forEach(fila => {
+        datosExcel.push([
+          fila.mes.toString(),
+          `$${fila.saldoInicial.toFixed(2)}`,
+          `$${fila.pago.toFixed(2)}`,
+          `$${fila.interes.toFixed(2)}`,
+          `$${fila.capital.toFixed(2)}`,
+          `$${fila.saldoFinal.toFixed(2)}`
+        ]);
+      });
+
+      // Agregar pie
+      datosExcel.push(['']);
+      datosExcel.push(['Generado el:', new Date().toLocaleDateString()]);
+
+      // Crear libro de trabajo
+      const wb = utils.book_new();
+      const ws = utils.aoa_to_sheet(datosExcel);
+
+      // Estilos básicos
+      if (ws['!cols'] === undefined) ws['!cols'] = [];
+      ws['!cols'][0] = { width: 10 };
+      ws['!cols'][1] = { width: 15 };
+      ws['!cols'][2] = { width: 15 };
+      ws['!cols'][3] = { width: 15 };
+      ws['!cols'][4] = { width: 15 };
+      ws['!cols'][5] = { width: 15 };
+
+      utils.book_append_sheet(wb, ws, 'Amortización');
+
+      // Generar y descargar archivo
+      const fileName = `RESUMEN_SIMULACION_CREDITO_${nombreFinal.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().getTime()}.xlsx`;
+      writeFile(wb, fileName);
+
+    } catch (error) {
+      console.error('Error generando Excel:', error);
+      alert('Error al generar el Excel');
+    }
   };
 
   if (loading) {
@@ -207,8 +410,8 @@ export default function LoansPage() {
           {/* Formulario de Simulación */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Parámetros del Crédito</h2>
-              
+              <h2 className="text-xl font-semibold mb-4">Datos del crédito</h2>
+
               <div className="space-y-4">
                 {/* Selector de Tipo de Crédito */}
                 <div>
@@ -278,7 +481,6 @@ export default function LoansPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     min="1"
                     max="360"
-                    disabled={selectedLoan !== 'personalizado'}
                   />
                   {selectedLoan !== 'personalizado' && (
                     <p className="text-xs text-gray-500 mt-1">
@@ -301,8 +503,8 @@ export default function LoansPage() {
                     <option value="aleman">Alemán (Amortización Constante)</option>
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    {tipoAmortizacion === 'frances' 
-                      ? 'Cuota mensual constante, interés decreciente' 
+                    {tipoAmortizacion === 'frances'
+                      ? 'Cuota mensual constante, interés decreciente'
                       : 'Amortización constante, cuota decreciente'}
                   </p>
                 </div>
@@ -374,7 +576,7 @@ export default function LoansPage() {
                   <h2 className="text-xl font-semibold">Tabla de Amortización - Sistema {tipoAmortizacion === 'frances' ? 'Francés' : 'Alemán'}</h2>
                   <p className="text-gray-600">Detalle de pagos mensuales</p>
                 </div>
-                
+
                 <div className="overflow-x-auto max-h-96">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0">
