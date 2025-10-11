@@ -67,7 +67,7 @@ export default function LoanTypesPage() {
     try {
       const url = '/api/admin/loan-types';
       const method = editingLoan ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -98,7 +98,7 @@ export default function LoanTypesPage() {
       if (!loan) return;
 
       const updatedLoan = { ...loan, estado: !loan.estado };
-      
+
       const response = await fetch('/api/admin/loan-types', {
         method: 'PUT',
         headers: {
@@ -119,6 +119,28 @@ export default function LoanTypesPage() {
     setEditingLoan(loan);
     setFormData(loan);
     setShowForm(true);
+  };
+
+  const handleDelete = async (id_credito: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este tipo de crédito?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/loan-types?id=${id_credito}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await loadLoanTypes();
+        alert('Tipo de crédito eliminado correctamente');
+      } else {
+        throw new Error('Error al eliminar');
+      }
+    } catch (error) {
+      console.error('Error eliminando tipo de crédito:', error);
+      alert('Error al eliminar el tipo de crédito');
+    }
   };
 
   const handleAddNew = () => {
@@ -203,23 +225,25 @@ export default function LoanTypesPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
                     onClick={() => toggleActive(loan.id_credito!)}
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer ${
-                      loan.estado
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer ${loan.estado
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}
+                      }`}
                   >
                     {loan.estado ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button 
+                  <button
                     onClick={() => handleEdit(loan)}
                     className="text-blue-600 hover:text-blue-900 mr-3"
                   >
                     Editar
                   </button>
-                  <button className="text-red-600 hover:text-red-900">
+                  <button
+                    onClick={() => handleDelete(loan.id_credito!)}
+                    className="text-red-600 hover:text-red-900"
+                  >
                     Eliminar
                   </button>
                 </td>
