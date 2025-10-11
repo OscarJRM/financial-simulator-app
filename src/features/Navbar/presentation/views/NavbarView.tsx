@@ -37,6 +37,11 @@ export function NavbarView() {
               href: '/admin/config/loan-types',
               description: 'Agregar y gestionar tipos de crédito',
             },
+              {
+              label: 'Cobros Indirectos',
+              href: '/admin/config/indirects',
+              description: 'Agregar y gestionar tipos de crédito',
+            },
           ],
         },
         {
