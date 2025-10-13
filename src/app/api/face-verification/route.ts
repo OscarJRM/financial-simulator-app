@@ -85,8 +85,14 @@ export async function POST(request: Request) {
     let isMatch = false;
     let confidence = 0;
 
-    // Diferentes formatos posibles de respuesta
-    if (typeof result === 'boolean') {
+    // La API devuelve: { isIdentical: true, confidence: 0.95 }
+    if (result.isIdentical !== undefined) {
+      isMatch = result.isIdentical;
+      confidence = result.confidence || 0;
+      console.log('Usando formato isIdentical:', { isMatch, confidence });
+    } 
+    // Fallback para otros formatos posibles
+    else if (typeof result === 'boolean') {
       isMatch = result;
     } else if (result.isMatch !== undefined) {
       isMatch = result.isMatch;

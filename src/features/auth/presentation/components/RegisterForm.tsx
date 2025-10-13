@@ -173,26 +173,16 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
 
   // Verificación facial real usando la API
   const performFaceVerification = async (cedulaFile: File, selfieFile: File): Promise<{ isMatch: boolean; confidence: number }> => {
-    console.log('🚀 === LLAMANDO A API DE VERIFICACIÓN ===');
-    
     if (!cedulaFile || !selfieFile) {
-      console.error('❌ Faltan archivos para verificación');
       throw new Error('Faltan archivos de cédula o selfie para verificar');
     }
 
     try {
-      console.log('📤 Convirtiendo archivos a Base64...');
       const [cedulaBase64, selfieBase64] = await Promise.all([
         fileToBase64(cedulaFile),
         fileToBase64(selfieFile)
       ]);
 
-      console.log('📊 Archivos convertidos:', {
-        cedulaSize: cedulaBase64.length,
-        selfieSize: selfieBase64.length
-      });
-
-      console.log('📤 Enviando petición fetch...');
       const response = await fetch('/api/face-verification', {
         method: 'POST',
         headers: {
@@ -204,31 +194,19 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
         }),
       });
 
-      console.log('📥 Respuesta recibida:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       const data = await response.json();
-      console.log('📋 Data de respuesta:', data);
 
       if (!response.ok) {
-        console.error('❌ Error en respuesta:', data.error);
         throw new Error(data.error || 'Error en la verificación facial');
       }
 
-      const result = {
+      return {
         isMatch: data.isMatch || false,
         confidence: data.confidence || 0
       };
 
-      console.log('✅ Resultado final:', result);
-      return result;
-
     } catch (error) {
-      console.error('💥 Error completo en verificación facial:', error);
-      console.error('Stack:', error instanceof Error ? error.stack : 'No stack available');
+      console.error('Error en verificación facial:', error);
       throw error;
     }
   };
@@ -263,8 +241,6 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     try {
       // Crear preview local inmediatamente
       const previewUrl = URL.createObjectURL(file);
-      console.log(`Preview URL created for ${type}:`, previewUrl);
-      console.log(`File details:`, { name: file.name, type: file.type, size: file.size });
       
       if (type === 'frontal') {
         setCedulaFrontalPreview(previewUrl);
@@ -275,7 +251,6 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
       }
       
       const url = await uploadImage(file, type);
-      console.log('✅ Imagen subida exitosamente:', { type, url });
       
       // Actualizar estados con las nuevas URLs
       let newCedulaFrontalUri = cedulaFrontalUri;
@@ -301,30 +276,12 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
         return newErrors;
       });
 
-      // Debug: mostrar estados actuales
-      console.log('=== ESTADO DESPUÉS DE SUBIR ===');
-      console.log('Tipo subido:', type);
-      console.log('URL nueva:', url);
-      console.log('newCedulaFrontalUri:', newCedulaFrontalUri);
-      console.log('newSelfieUri:', newSelfieUri);
-      console.log('Estado anterior cedulaFrontalUri:', cedulaFrontalUri);
-      console.log('Estado anterior selfieUri:', selfieUri);
-
       // Verificar si ahora tenemos ambas imágenes necesarias para verificación
-      // Necesitamos verificar los archivos, no las URLs
       const currentCedulaFile = type === 'frontal' ? file : cedulaFrontal;
       const currentSelfieFile = type === 'selfie' ? file : selfie;
       
       if (currentCedulaFile && currentSelfieFile) {
-        console.log('🔍 INICIANDO VERIFICACIÓN: Tenemos ambos archivos');
         await handleFaceVerification(currentCedulaFile, currentSelfieFile);
-      } else {
-        console.log('⏳ NO SE PUEDE VERIFICAR AÚN:', {
-          tipo: type,
-          tieneCedulaFile: !!currentCedulaFile,
-          tieneSelfieFile: !!currentSelfieFile,
-          message: 'Faltan archivos para verificar'
-        });
       }
       
     } catch (error) {
@@ -352,13 +309,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
 
   // Manejar verificación facial
   const handleFaceVerification = async (cedulaFile: File, selfieFile: File) => {
-    console.log('🔍 === INICIANDO VERIFICACIÓN FACIAL ===');
-    console.log('Archivo cédula:', cedulaFile.name, cedulaFile.size, 'bytes');
-    console.log('Archivo selfie:', selfieFile.name, selfieFile.size, 'bytes');
-    
-    // Validar que ambos archivos estén presentes
     if (!cedulaFile || !selfieFile) {
-      console.error('❌ ERROR: Archivos faltantes', { cedulaFile, selfieFile });
       return;
     }
     
@@ -784,32 +735,6 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
               {errors.verification && (
                 <p className="text-sm text-red-500 mt-2">{errors.verification}</p>
               )}
-              
-              {/* DEBUG: Información de URLs */}
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-xs">
-                <h5 className="font-semibold text-blue-800 mb-2">🔧 Debug Info:</h5>
-                <div className="space-y-1 text-blue-700">
-                  <div>Cédula URI: {cedulaFrontalUri ? '✅ ' + cedulaFrontalUri.substring(0, 50) + '...' : '❌ No subida'}</div>
-                  <div>Selfie URI: {selfieUri ? '✅ ' + selfieUri.substring(0, 50) + '...' : '❌ No subida'}</div>
-                  <div>Estado verificación: {faceVerificationStatus}</div>
-                  <div>Verificado: {isVerified ? '✅' : '❌'}</div>
-                  <div>Confianza: {verificationConfidence > 0 ? `${Math.round(verificationConfidence * 100)}%` : 'N/A'}</div>
-                </div>
-                
-                {/* Botón de prueba manual */}
-                {cedulaFrontal && selfie && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      console.log('🧪 PRUEBA MANUAL DE VERIFICACIÓN');
-                      handleFaceVerification(cedulaFrontal, selfie);
-                    }}
-                    className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                  >
-                    🧪 Probar Verificación Manual
-                  </button>
-                )}
-              </div>
             </div>
           </CardContent>
         </Card>
