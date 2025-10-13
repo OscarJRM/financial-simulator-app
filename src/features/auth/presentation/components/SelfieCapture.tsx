@@ -166,16 +166,7 @@ export function SelfieCapture({ onCapture, onCancel, isUploading }: SelfieCaptur
         </div>
       )}
       
-      {/* Guía visual */}
-      {isReady && (
-        <div className="absolute top-4 left-4 right-4">
-          <div className="bg-black bg-opacity-60 rounded-lg p-3">
-            <p className="text-white text-sm text-center">
-              📸 Posiciona tu rostro en el centro y sonríe
-            </p>
-          </div>
-        </div>
-      )}
+
       
       {/* Controles */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
@@ -201,14 +192,7 @@ export function SelfieCapture({ onCapture, onCancel, isUploading }: SelfieCaptur
         </Button>
       </div>
       
-      {/* Instrucciones de captura */}
-      {isReady && (
-        <div className="absolute bottom-20 left-0 right-0">
-          <p className="text-white text-xs text-center bg-black bg-opacity-50 mx-4 py-2 rounded">
-            Presiona el botón blanco para capturar tu selfie
-          </p>
-        </div>
-      )}
+
     </div>
   );
 }

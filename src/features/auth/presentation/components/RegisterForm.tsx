@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useInstitution } from '@/features/institution/hooks/useInstitution';
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { ImagePreview } from './ImagePreview';
 
 interface RegisterFormData {
@@ -74,6 +74,10 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     reverso: false,
     selfie: false
   });
+
+  // Estados para visibilidad de contraseñas
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Cleanup de URLs de objeto al desmontar el componente
   useEffect(() => {
@@ -656,13 +660,26 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="clave">Contraseña *</Label>
-                <Input
-                  id="clave"
-                  type="password"
-                  value={formData.clave}
-                  onChange={(e) => handleInputChange('clave', e.target.value)}
-                  className={errors.clave ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="clave"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.clave}
+                    onChange={(e) => handleInputChange('clave', e.target.value)}
+                    className={`pr-10 ${errors.clave ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 {errors.clave && (
                   <p className="text-sm text-red-500 mt-1">{errors.clave}</p>
                 )}
@@ -670,13 +687,26 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
 
               <div>
                 <Label htmlFor="confirmarClave">Confirmar Contraseña *</Label>
-                <Input
-                  id="confirmarClave"
-                  type="password"
-                  value={formData.confirmarClave}
-                  onChange={(e) => handleInputChange('confirmarClave', e.target.value)}
-                  className={errors.confirmarClave ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmarClave"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmarClave}
+                    onChange={(e) => handleInputChange('confirmarClave', e.target.value)}
+                    className={`pr-10 ${errors.confirmarClave ? 'border-red-500' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 {errors.confirmarClave && (
                   <p className="text-sm text-red-500 mt-1">{errors.confirmarClave}</p>
                 )}
