@@ -193,6 +193,8 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     try {
       // Crear preview local inmediatamente
       const previewUrl = URL.createObjectURL(file);
+      console.log(`Preview URL created for ${type}:`, previewUrl);
+      console.log(`File details:`, { name: file.name, type: file.type, size: file.size });
       
       if (type === 'frontal') {
         setCedulaFrontalPreview(previewUrl);

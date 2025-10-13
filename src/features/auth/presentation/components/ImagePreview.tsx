@@ -62,20 +62,27 @@ export function ImagePreview({
                 src={previewUrl}
                 alt={`Preview ${type}`}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error('Error loading image:', previewUrl);
+                  // Mostrar un placeholder si la imagen no carga
+                  e.currentTarget.style.display = 'none';
+                }}
+                onLoad={() => {
+                  console.log('Image loaded successfully:', previewUrl);
+                }}
               />
               
-              {/* Overlay con estados */}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">
+              {/* Overlay con estados - Solo visible en hover */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-center pb-4">
+                <div className="flex gap-2">
                   <label className="cursor-pointer">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="bg-white hover:bg-gray-100"
-                      asChild
+                      className="bg-white/90 hover:bg-white text-gray-900 border-white/50"
                     >
-                      <span>Cambiar</span>
+                      Cambiar
                     </Button>
                     <input
                       type="file"
@@ -93,7 +100,7 @@ export function ImagePreview({
                       size="sm"
                       onClick={onRemove}
                       disabled={isUploading}
-                      className="bg-white hover:bg-red-50 text-red-600 hover:text-red-700"
+                      className="bg-white/90 hover:bg-red-50 text-red-600 hover:text-red-700 border-white/50"
                     >
                       <X className="w-4 h-4" />
                     </Button>
