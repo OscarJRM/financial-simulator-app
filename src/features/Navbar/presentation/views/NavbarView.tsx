@@ -105,7 +105,7 @@ export function NavbarView() {
             },
             {
               label: 'Mis Inversiones',
-              href: '/client/investments',
+              href: '/client/investments/my-investments',
               description: 'Ver mis inversiones activas',
             },
           ],
