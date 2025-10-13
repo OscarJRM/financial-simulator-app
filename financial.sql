@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 13-10-2025 a las 08:53:49
+-- Tiempo de generación: 13-10-2025 a las 11:18:03
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.3.12
 
@@ -91,6 +91,13 @@ CREATE TABLE `financial_perfil_usuario` (
   `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `financial_perfil_usuario`
+--
+
+INSERT INTO `financial_perfil_usuario` (`id_perfil`, `id_usuario`, `primer_nombre`, `segundo_nombre`, `primer_apellido`, `segundo_apellido`, `fecha_nacimiento`, `telefono`, `cedula_frontal_uri`, `cedula_reverso_uri`, `selfie_uri`, `verificado`, `fecha_creacion`) VALUES
+(1, 3, 'Oscar', 'Joel', 'Ramirez', 'Manzano', '2003-08-07', '0992849536', 'https://pcjrjqlmepgyqujuwzig.supabase.co/storage/v1/object/public/cedulas/1850210004_cedula-frontal_1760343263113.jpg', 'https://pcjrjqlmepgyqujuwzig.supabase.co/storage/v1/object/public/cedulas/1850210004_cedula-reverso_1760343275247.jpg', 'https://pcjrjqlmepgyqujuwzig.supabase.co/storage/v1/object/public/selfies/1850210004_selfie_1760343282882.jpg', 1, '2025-10-13 08:14:52');
+
 -- --------------------------------------------------------
 
 --
@@ -172,6 +179,36 @@ INSERT INTO `inversiones` (`id`, `tipo_inversion_id`, `nombre`, `descripcion`, `
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `solicitud_inversion`
+--
+
+CREATE TABLE `solicitud_inversion` (
+  `id_solicitud` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `id_inversion` int(11) NOT NULL,
+  `monto` decimal(12,2) NOT NULL,
+  `plazo_meses` int(11) NOT NULL,
+  `ingresos` decimal(12,2) DEFAULT NULL,
+  `egresos` decimal(12,2) DEFAULT NULL,
+  `empresa` varchar(150) DEFAULT NULL,
+  `ruc` varchar(13) DEFAULT NULL,
+  `tipo_empleo` enum('Dependencia','Independiente','Otro') DEFAULT NULL,
+  `documento_validacion_uri` varchar(255) DEFAULT NULL,
+  `estado` enum('Pendiente','Aprobado','Rechazado') DEFAULT 'Pendiente',
+  `observacion_admin` text DEFAULT NULL,
+  `fecha_solicitud` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `solicitud_inversion`
+--
+
+INSERT INTO `solicitud_inversion` (`id_solicitud`, `id_usuario`, `id_inversion`, `monto`, `plazo_meses`, `ingresos`, `egresos`, `empresa`, `ruc`, `tipo_empleo`, `documento_validacion_uri`, `estado`, `observacion_admin`, `fecha_solicitud`) VALUES
+(1, 3, 1, 5000.00, 12, 5000.00, 1200.00, 'Malvados y asociados', '1850210004000', 'Dependencia', 'https://pcjrjqlmepgyqujuwzig.supabase.co/storage/v1/object/public/documents/3_documento-validacion_1760344597102.pdf', 'Aprobado', '', '2025-10-13 08:46:23');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `tipo_inversion`
 --
 
@@ -215,7 +252,8 @@ CREATE TABLE `usuarios` (
 
 INSERT INTO `usuarios` (`id`, `cedula`, `usuario`, `clave`, `tipo`, `nombre`) VALUES
 (1, '1850221761', 'admin', 'admin', 1, 'MIADMIN'),
-(2, '1850221762', 'user', 'user', 0, 'MIUSUARIO');
+(2, '1850221762', 'user', 'user', 0, 'MIUSUARIO'),
+(3, '1850210004', 'oscar78203', '123456', 0, 'Oscar Ramirez');
 
 --
 -- Índices para tablas volcadas
@@ -261,6 +299,14 @@ ALTER TABLE `inversiones`
   ADD KEY `fk_productos_inversion_tipo` (`tipo_inversion_id`);
 
 --
+-- Indices de la tabla `solicitud_inversion`
+--
+ALTER TABLE `solicitud_inversion`
+  ADD PRIMARY KEY (`id_solicitud`),
+  ADD KEY `id_usuario` (`id_usuario`),
+  ADD KEY `id_inversion` (`id_inversion`);
+
+--
 -- Indices de la tabla `tipo_inversion`
 --
 ALTER TABLE `tipo_inversion`
@@ -281,7 +327,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `financial_perfil_usuario`
 --
 ALTER TABLE `financial_perfil_usuario`
-  MODIFY `id_perfil` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_perfil` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `info_inst`
@@ -296,6 +342,12 @@ ALTER TABLE `inversiones`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT de la tabla `solicitud_inversion`
+--
+ALTER TABLE `solicitud_inversion`
+  MODIFY `id_solicitud` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT de la tabla `tipo_inversion`
 --
 ALTER TABLE `tipo_inversion`
@@ -305,7 +357,7 @@ ALTER TABLE `tipo_inversion`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Restricciones para tablas volcadas
@@ -330,6 +382,13 @@ ALTER TABLE `financial_perfil_usuario`
 --
 ALTER TABLE `inversiones`
   ADD CONSTRAINT `fk_productos_inversion_tipo` FOREIGN KEY (`tipo_inversion_id`) REFERENCES `tipo_inversion` (`id`) ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `solicitud_inversion`
+--
+ALTER TABLE `solicitud_inversion`
+  ADD CONSTRAINT `solicitud_inversion_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`),
+  ADD CONSTRAINT `solicitud_inversion_ibfk_2` FOREIGN KEY (`id_inversion`) REFERENCES `inversiones` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
