@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 11-10-2025 a las 04:19:19
+-- Tiempo de generación: 13-10-2025 a las 08:53:49
 -- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Versión de PHP: 8.3.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,32 +24,94 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `creditos`
+-- Estructura de tabla para la tabla `creditostabla`
 --
 
-CREATE TABLE `creditos` (
+CREATE TABLE `creditostabla` (
   `id_credito` int(11) NOT NULL,
   `nombre` varchar(150) NOT NULL,
   `descripcion` text DEFAULT NULL,
   `tipo` varchar(100) DEFAULT NULL,
-  `interes` decimal(5,2) DEFAULT NULL,
-  `tiempo` varchar(50) DEFAULT NULL,
-  `solca` tinyint(1) DEFAULT 0,
-  `gravamen` tinyint(1) DEFAULT 0,
+  `interes` decimal(10,2) DEFAULT NULL,
   `informacion` text DEFAULT NULL,
-  `estado` tinyint(1) DEFAULT 1,
-  `imagen` varchar(255) DEFAULT NULL
+  `estado` tinyint(1) NOT NULL DEFAULT 1,
+  `plazo_min` int(11) NOT NULL,
+  `plazo_max` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `creditos`
+-- Volcado de datos para la tabla `creditostabla`
 --
 
-INSERT INTO `creditos` (`id_credito`, `nombre`, `descripcion`, `tipo`, `interes`, `tiempo`, `solca`, `gravamen`, `informacion`, `estado`, `imagen`) VALUES
-(1, 'Mobiliario', 'AAA', 'Hipotecario', 10.00, '80 MESES', 1, 1, 'AAAA', 1, ''),
-(3, 'Crédito Automotriz', 'Se utiliza para la compra de vehículos nuevos o usados.', 'Automotriz', 10.50, '12-84 meses', 1, 0, 'Financiamiento para automóviles, motos y vehículos comerciales.', 1, ''),
-(4, 'Crédito de Consumo', 'Cubre necesidades de bienes y servicios. Incluye tarjetas de crédito, crédito de nómina y crédito personal.', 'Consumo', 15.00, '3-60 meses', 0, 0, 'Ideal para gastos imprevistos, viajes, electrodomésticos y compras puntuales.', 1, ''),
-(5, 'Crédito Prendario', 'Para la compra de un bien mueble que queda como garantía hasta que se liquide la deuda.', 'Prendario', 11.00, '6-60 meses', 1, 0, 'Joyas, electrodomésticos, equipos electrónicos como garantía.', 1, '');
+INSERT INTO `creditostabla` (`id_credito`, `nombre`, `descripcion`, `tipo`, `interes`, `informacion`, `estado`, `plazo_min`, `plazo_max`) VALUES
+(0, 'Credito Educacion', 'Para inicio a clases', 'Educacion', 12.00, 'buena pregunta', 1, 6, 24),
+(1, 'Crédito Hipotecario', 'Para tu primer vivienda', 'hipotecario', 8.20, '', 1, 60, 25),
+(2, 'Crédito personal', 'Para compras de hogar', 'Personal', 15.00, 'Para personal', 1, 3, 24);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `credito_indirecto`
+--
+
+CREATE TABLE `credito_indirecto` (
+  `id_credito` int(11) NOT NULL,
+  `id_indirecto` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `credito_indirecto`
+--
+
+INSERT INTO `credito_indirecto` (`id_credito`, `id_indirecto`) VALUES
+(0, 3),
+(1, 2),
+(2, 2),
+(2, 3);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `financial_perfil_usuario`
+--
+
+CREATE TABLE `financial_perfil_usuario` (
+  `id_perfil` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `primer_nombre` varchar(50) NOT NULL,
+  `segundo_nombre` varchar(50) DEFAULT NULL,
+  `primer_apellido` varchar(50) NOT NULL,
+  `segundo_apellido` varchar(50) DEFAULT NULL,
+  `fecha_nacimiento` date NOT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  `cedula_frontal_uri` varchar(255) DEFAULT NULL,
+  `cedula_reverso_uri` varchar(255) DEFAULT NULL,
+  `selfie_uri` varchar(255) DEFAULT NULL,
+  `verificado` tinyint(1) DEFAULT 0,
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `indirect`
+--
+
+CREATE TABLE `indirect` (
+  `id_indirecto` int(11) NOT NULL,
+  `nombre` varchar(255) NOT NULL,
+  `tipo` varchar(100) NOT NULL,
+  `interes` decimal(10,2) NOT NULL,
+  `tipo_interes` varchar(20) NOT NULL CHECK (`tipo_interes` in ('porcentaje','desembolso'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `indirect`
+--
+
+INSERT INTO `indirect` (`id_indirecto`, `nombre`, `tipo`, `interes`, `tipo_interes`) VALUES
+(2, 'Solca', 'Gobernamental', 0.05, 'porcentaje'),
+(3, 'seguro', 'vida', 150.00, 'desembolso');
 
 -- --------------------------------------------------------
 
@@ -77,7 +139,8 @@ CREATE TABLE `info_inst` (
 --
 
 INSERT INTO `info_inst` (`id_info`, `nombre`, `logo`, `slogan`, `color_primario`, `color_secundario`, `direccion`, `pais`, `owner`, `telefono`, `correo`, `estado`) VALUES
-(1, 'BANCO TU BANCO', 'https://mir-s3-cdn-cf.behance.net/project_modules/1400_webp/768881137475311.620bf35301822.jpg', 'Tu banco, tu dinero', '#d38ee1', '#bea5ee', 'Ambato', 'Ecuador', 'owner', 'aaa', 'bancoprueba@gmail.com', 1);
+(1, 'BANCO CHILL DE COJONEEEES', 'https://mir-s3-cdn-cf.behance.net/project_modules/1400_webp/768881137475311.620bf35301822.jpg', 'Tu banco, tu dinero', '#c4d8f8', '#dedede', 'Ambato', 'Ecuador', 'owner', 'aaa', 'bancoprueba@gmail.com', 1),
+(2, 'TEst', 'https://mir-s3-cdn-cf.behance.net/project_modules/1400_webp/768881137475311.620bf35301822.jpg', 'djsdnhj', NULL, NULL, 'sdasd', NULL, NULL, 'sdsdasd', 'sdasdasd', 1);
 
 -- --------------------------------------------------------
 
@@ -86,16 +149,50 @@ INSERT INTO `info_inst` (`id_info`, `nombre`, `logo`, `slogan`, `color_primario`
 --
 
 CREATE TABLE `inversiones` (
-  `id_inversion` int(11) NOT NULL,
-  `nombre` varchar(150) NOT NULL,
+  `id` int(11) NOT NULL,
+  `tipo_inversion_id` int(11) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
   `descripcion` text DEFAULT NULL,
-  `rendimiento` decimal(5,2) DEFAULT NULL,
-  `plazo` varchar(50) DEFAULT NULL,
-  `riesgo` varchar(50) DEFAULT NULL,
-  `informacion` text DEFAULT NULL,
-  `estado` tinyint(1) DEFAULT 1,
-  `imagen` varchar(255) DEFAULT NULL
+  `estado` enum('Activo','Inactivo') DEFAULT 'Activo',
+  `monto_minimo` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `monto_maximo` decimal(12,2) DEFAULT NULL,
+  `plazo_min_meses` int(11) NOT NULL DEFAULT 1,
+  `plazo_max_meses` int(11) DEFAULT NULL,
+  `tasa_anual` decimal(5,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `inversiones`
+--
+
+INSERT INTO `inversiones` (`id`, `tipo_inversion_id`, `nombre`, `descripcion`, `estado`, `monto_minimo`, `monto_maximo`, `plazo_min_meses`, `plazo_max_meses`, `tasa_anual`) VALUES
+(1, 1, 'Plazo Fijo', 'Inversión a plazo fijo con tasa fija garantizada', 'Activo', 1000.00, 100000.00, 12, 36, 10.00),
+(2, 3, 'Test', 'Test', 'Inactivo', 100.00, 100000.00, 10, 60, 8.00);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `tipo_inversion`
+--
+
+CREATE TABLE `tipo_inversion` (
+  `id` int(11) NOT NULL,
+  `nombre` varchar(50) NOT NULL,
+  `descripcion` text DEFAULT NULL,
+  `nivel_riesgo` enum('Bajo','Medio','Alto') DEFAULT 'Medio',
+  `tipo_interes` enum('Simple','Compuesto') DEFAULT 'Compuesto',
+  `tipo_tasa` enum('Fija','Variable') DEFAULT 'Fija'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `tipo_inversion`
+--
+
+INSERT INTO `tipo_inversion` (`id`, `nombre`, `descripcion`, `nivel_riesgo`, `tipo_interes`, `tipo_tasa`) VALUES
+(1, 'Plazo fijo', 'Inversión a plazo determinado con tasa fija o variable, capital garantizado', 'Bajo', 'Compuesto', 'Fija'),
+(2, 'Fondo de renta fija', 'Fondo que invierte principalmente en bonos y activos de renta fija, rendimiento moderado', 'Medio', 'Compuesto', 'Variable'),
+(3, 'Fondo mixto', 'Fondo que combina renta fija y variable para diversificar riesgos y rendimientos', 'Medio', 'Compuesto', 'Variable'),
+(4, 'Fondo de renta variable', 'Fondo que invierte en acciones y activos de alto riesgo, rendimiento potencial alto', 'Alto', 'Compuesto', 'Variable');
 
 -- --------------------------------------------------------
 
@@ -125,10 +222,30 @@ INSERT INTO `usuarios` (`id`, `cedula`, `usuario`, `clave`, `tipo`, `nombre`) VA
 --
 
 --
--- Indices de la tabla `creditos`
+-- Indices de la tabla `creditostabla`
 --
-ALTER TABLE `creditos`
+ALTER TABLE `creditostabla`
   ADD PRIMARY KEY (`id_credito`);
+
+--
+-- Indices de la tabla `credito_indirecto`
+--
+ALTER TABLE `credito_indirecto`
+  ADD PRIMARY KEY (`id_credito`,`id_indirecto`),
+  ADD KEY `fk_credito_indirecto_indirect` (`id_indirecto`);
+
+--
+-- Indices de la tabla `financial_perfil_usuario`
+--
+ALTER TABLE `financial_perfil_usuario`
+  ADD PRIMARY KEY (`id_perfil`),
+  ADD KEY `id_usuario` (`id_usuario`);
+
+--
+-- Indices de la tabla `indirect`
+--
+ALTER TABLE `indirect`
+  ADD PRIMARY KEY (`id_indirecto`);
 
 --
 -- Indices de la tabla `info_inst`
@@ -140,7 +257,15 @@ ALTER TABLE `info_inst`
 -- Indices de la tabla `inversiones`
 --
 ALTER TABLE `inversiones`
-  ADD PRIMARY KEY (`id_inversion`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_productos_inversion_tipo` (`tipo_inversion_id`);
+
+--
+-- Indices de la tabla `tipo_inversion`
+--
+ALTER TABLE `tipo_inversion`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `nombre` (`nombre`);
 
 --
 -- Indices de la tabla `usuarios`
@@ -153,28 +278,58 @@ ALTER TABLE `usuarios`
 --
 
 --
--- AUTO_INCREMENT de la tabla `creditos`
+-- AUTO_INCREMENT de la tabla `financial_perfil_usuario`
 --
-ALTER TABLE `creditos`
-  MODIFY `id_credito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+ALTER TABLE `financial_perfil_usuario`
+  MODIFY `id_perfil` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `info_inst`
 --
 ALTER TABLE `info_inst`
-  MODIFY `id_info` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_info` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `inversiones`
 --
 ALTER TABLE `inversiones`
-  MODIFY `id_inversion` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT de la tabla `tipo_inversion`
+--
+ALTER TABLE `tipo_inversion`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- Restricciones para tablas volcadas
+--
+
+--
+-- Filtros para la tabla `credito_indirecto`
+--
+ALTER TABLE `credito_indirecto`
+  ADD CONSTRAINT `credito_indirecto_ibfk_2` FOREIGN KEY (`id_indirecto`) REFERENCES `indirect` (`id_indirecto`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_credito_indirecto_creditos` FOREIGN KEY (`id_credito`) REFERENCES `creditostabla` (`id_credito`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_credito_indirecto_indirect` FOREIGN KEY (`id_indirecto`) REFERENCES `indirect` (`id_indirecto`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `financial_perfil_usuario`
+--
+ALTER TABLE `financial_perfil_usuario`
+  ADD CONSTRAINT `financial_perfil_usuario_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`);
+
+--
+-- Filtros para la tabla `inversiones`
+--
+ALTER TABLE `inversiones`
+  ADD CONSTRAINT `fk_productos_inversion_tipo` FOREIGN KEY (`tipo_inversion_id`) REFERENCES `tipo_inversion` (`id`) ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
