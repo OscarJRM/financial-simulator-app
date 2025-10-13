@@ -18,10 +18,10 @@ export async function POST(request: Request) {
       verificado
     } = body;
 
-    // Validaciones básicas
-    if (!idUsuario || !idInversion || !monto || !plazoMeses || !verificado) {
+    // Validaciones básicas - solo campos obligatorios
+    if (!idUsuario || !idInversion || !monto || !plazoMeses) {
       return NextResponse.json(
-        { error: 'Faltan campos obligatorios o validación facial no realizada' },
+        { error: 'Faltan campos obligatorios: usuario, inversión, monto y plazo' },
         { status: 400 }
       );
     }
@@ -114,19 +114,19 @@ export async function POST(request: Request) {
 
     // Insertar la nueva solicitud
     const result = await query(
-      `INSERT INTO solicitud_inversion 
-        (id_usuario, id_inversion, monto, plazo_meses, ingresos, egresos, empresa, ruc, tipo_empleo, documento_validacion_uri, estado, fecha_solicitud)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente', NOW())`,
+      `INSERT INTO financial_solicitud_inversion 
+        (id_usuario, id_inversion, monto, plazo_meses, ingresos, egresos, empresa, ruc, tipo_empleo, documento_validacion_uri, estado)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`,
       [
         idUsuario, 
         idInversion, 
         monto, 
         plazoMeses, 
-        ingresos || 0, 
-        egresos || 0, 
-        empresa || '', 
-        ruc || '', 
-        tipoEmpleo, 
+        ingresos || null, 
+        egresos || null, 
+        empresa || null, 
+        ruc || null, 
+        tipoEmpleo || null, 
         documentoUri || null
       ]
     );

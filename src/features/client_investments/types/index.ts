@@ -4,11 +4,11 @@ export interface SolicitudInversion {
   id_inversion: number;
   monto: number;
   plazo_meses: number;
-  ingresos: number;
-  egresos: number;
-  empresa: string;
-  ruc: string;
-  tipo_empleo: 'Dependencia' | 'Independiente' | 'Otro';
+  ingresos?: number;
+  egresos?: number;
+  empresa?: string;
+  ruc?: string;
+  tipo_empleo?: 'Dependencia' | 'Independiente' | 'Otro';
   documento_validacion_uri?: string;
   estado?: 'Pendiente' | 'Aprobado' | 'Rechazado';
   observacion_admin?: string;
@@ -20,11 +20,11 @@ export interface SolicitudFormData {
   idInversion: number;
   monto: number;
   plazoMeses: number;
-  ingresos: number;
-  egresos: number;
-  empresa: string;
-  ruc: string;
-  tipoEmpleo: 'Dependencia' | 'Independiente' | 'Otro';
+  ingresos?: number;
+  egresos?: number;
+  empresa?: string;
+  ruc?: string;
+  tipoEmpleo?: 'Dependencia' | 'Independiente' | 'Otro';
   documentoUri?: string;
   verificado: number;
 }

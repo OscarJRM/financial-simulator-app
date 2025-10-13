@@ -68,44 +68,34 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
   const validateForm = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
 
-    // Campos obligatorios
-    if (!formData.ingresos || parseFloat(formData.ingresos) <= 0) {
-      newErrors.ingresos = 'Los ingresos son requeridos y deben ser mayor a 0';
+    // Validaciones condicionales (solo si se proporciona el campo)
+    if (formData.ingresos && parseFloat(formData.ingresos) <= 0) {
+      newErrors.ingresos = 'Los ingresos deben ser mayor a 0';
     }
-    if (!formData.egresos || parseFloat(formData.egresos) < 0) {
-      newErrors.egresos = 'Los egresos son requeridos y deben ser mayor o igual a 0';
-    }
-    if (!formData.empresa.trim()) {
-      newErrors.empresa = 'El nombre de la empresa es requerido';
-    }
-    if (!formData.ruc.trim()) {
-      newErrors.ruc = 'El RUC es requerido';
-    }
-    if (!formData.tipoEmpleo) {
-      newErrors.tipoEmpleo = 'El tipo de empleo es requerido';
+    if (formData.egresos && parseFloat(formData.egresos) < 0) {
+      newErrors.egresos = 'Los egresos deben ser mayor o igual a 0';
     }
 
-    // Validar capacidad financiera
-    const ingresos = parseFloat(formData.ingresos);
-    const egresos = parseFloat(formData.egresos);
-    const monto = parseFloat(montoParam || '0');
-    
-    if (ingresos <= egresos) {
-      newErrors.capacidad = 'Los ingresos deben ser mayores a los egresos';
-    }
-    
-    const disponible = ingresos - egresos;
-    const minimoRequerido = monto * 0.1; // Al menos 10% del monto como capacidad
-    
-    if (disponible < minimoRequerido) {
-      newErrors.capacidad = `Capacidad financiera insuficiente. Se requiere al menos $${minimoRequerido.toFixed(2)} disponibles mensualmente`;
+    // Validar capacidad financiera (solo si se proporcionan ambos campos)
+    if (formData.ingresos && formData.egresos) {
+      const ingresos = parseFloat(formData.ingresos);
+      const egresos = parseFloat(formData.egresos);
+      const monto = parseFloat(montoParam || '0');
+      
+      if (ingresos <= egresos) {
+        newErrors.capacidad = 'Los ingresos deben ser mayores a los egresos';
+      }
+      
+      const disponible = ingresos - egresos;
+      const minimoRequerido = monto * 0.1; // Al menos 10% del monto como capacidad
+      
+      if (disponible < minimoRequerido) {
+        newErrors.capacidad = `Capacidad financiera insuficiente. Se requiere al menos $${minimoRequerido.toFixed(2)} disponibles mensualmente`;
+      }
     }
 
-    // Validar documento y verificación
-    if (!documentoUri) {
-      newErrors.documento = 'El documento de validación es requerido';
-    }
-    if (!isVerified) {
+    // La verificación facial solo es requerida si se sube documento
+    if (documentoUri && !isVerified) {
       newErrors.verification = 'Debe completar la verificación facial exitosamente';
     }
 
@@ -365,13 +355,13 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
         idInversion: parseInt(inversionId),
         monto: parseFloat(montoParam),
         plazoMeses: parseInt(plazoParam),
-        ingresos: parseFloat(formData.ingresos),
-        egresos: parseFloat(formData.egresos),
-        empresa: formData.empresa,
-        ruc: formData.ruc,
-        tipoEmpleo: formData.tipoEmpleo as 'Dependencia' | 'Independiente' | 'Otro',
-        documentoUri,
-        verificado: 1
+        ...(formData.ingresos && { ingresos: parseFloat(formData.ingresos) }),
+        ...(formData.egresos && { egresos: parseFloat(formData.egresos) }),
+        ...(formData.empresa && { empresa: formData.empresa }),
+        ...(formData.ruc && { ruc: formData.ruc }),
+        ...(formData.tipoEmpleo && { tipoEmpleo: formData.tipoEmpleo as 'Dependencia' | 'Independiente' | 'Otro' }),
+        ...(documentoUri && { documentoUri }),
+        verificado: isVerified ? 1 : 0
       };
 
       await createSolicitud(solicitudData);
@@ -484,17 +474,45 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               Solicitud de Inversión: {inversion.nombre}
             </CardTitle>
             <CardDescription className="text-base">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  <span>Monto: <strong>${montoParam}</strong></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Plazo: <strong>{plazoParam} meses</strong></span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>Tasa: <strong>{inversion.tasa_interes}% anual</strong></span>
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">{inversion.descripcion}</p>
+                
+                {/* Datos del simulador */}
+                <div className="bg-white p-4 rounded-lg border">
+                  <h4 className="font-medium mb-3 text-gray-800">Datos de la Simulación:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span>Monto: <strong>${parseFloat(montoParam || '0').toLocaleString()}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                      <span>Plazo: <strong>{plazoParam} meses</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>Tasa: <strong>{inversion.tasa_interes}% anual</strong></span>
+                    </div>
+                  </div>
+                  
+                  {/* Proyección estimada */}
+                  {montoParam && plazoParam && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Rendimiento estimado:</span>
+                          <div className="font-semibold text-green-600">
+                            ${((parseFloat(montoParam) * (inversion.tasa_interes / 100) * parseInt(plazoParam || '0')) / 12).toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Total al vencimiento:</span>
+                          <div className="font-semibold text-blue-600">
+                            ${(parseFloat(montoParam) + ((parseFloat(montoParam) * (inversion.tasa_interes / 100) * parseInt(plazoParam || '0')) / 12)).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardDescription>
@@ -517,7 +535,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="empresa">Empresa o Negocio *</Label>
+                <Label htmlFor="empresa">Empresa o Negocio (Opcional)</Label>
                 <Input
                   id="empresa"
                   type="text"
@@ -532,7 +550,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="ruc">RUC *</Label>
+                <Label htmlFor="ruc">RUC (Opcional)</Label>
                 <Input
                   id="ruc"
                   type="text"
@@ -547,7 +565,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="tipoEmpleo">Tipo de Empleo *</Label>
+                <Label htmlFor="tipoEmpleo">Tipo de Empleo (Opcional)</Label>
                 <Select value={formData.tipoEmpleo} onValueChange={(value: any) => handleInputChange('tipoEmpleo', value)}>
                   <SelectTrigger className={errors.tipoEmpleo ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Seleccione el tipo de empleo" />
@@ -564,7 +582,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="ingresos">Ingresos Mensuales *</Label>
+                <Label htmlFor="ingresos">Ingresos Mensuales (Opcional)</Label>
                 <Input
                   id="ingresos"
                   type="number"
@@ -580,7 +598,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="egresos">Egresos Mensuales *</Label>
+                <Label htmlFor="egresos">Egresos Mensuales (Opcional)</Label>
                 <Input
                   id="egresos"
                   type="number"
@@ -625,7 +643,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               Documentación y Verificación
             </CardTitle>
             <CardDescription>
-              Suba su documento de validación laboral y complete la verificación facial
+              Opcionalmente, suba su documento de validación laboral y complete la verificación facial para acelerar el proceso
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -685,7 +703,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || uploadingDocument || uploadingSelfie || !isVerified}
+            disabled={isLoading || uploadingDocument || uploadingSelfie}
             size="lg"
           >
             {isLoading ? (
