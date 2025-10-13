@@ -7,20 +7,20 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Función para generar nombre único de archivo
-export const generateUniqueFileName = (cedula: string, type: 'selfie' | 'cedula-frontal' | 'cedula-reverso', originalName: string): string => {
+export const generateUniqueFileName = (identifier: string, type: 'selfie' | 'cedula-frontal' | 'cedula-reverso' | 'documento-validacion', originalName: string): string => {
   const timestamp = Date.now();
   const extension = originalName.split('.').pop()?.toLowerCase();
   
-  // Limpiar la cédula de caracteres especiales
-  const cleanCedula = cedula.replace(/[^0-9]/g, '');
+  // Limpiar el identificador de caracteres especiales
+  const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
   
-  return `${cleanCedula}_${type}_${timestamp}.${extension}`;
+  return `${cleanIdentifier}_${type}_${timestamp}.${extension}`;
 };
 
 // Función para subir imagen a Supabase Storage
 export const uploadImageToSupabase = async (
   file: File, 
-  bucketName: 'selfies' | 'cedulas', 
+  bucketName: 'selfies' | 'cedulas' | 'documents', 
   fileName: string
 ): Promise<string> => {
   try {
@@ -72,7 +72,7 @@ export const uploadImageToSupabase = async (
 
 // Función para eliminar imagen de Supabase Storage
 export const deleteImageFromSupabase = async (
-  bucketName: 'selfies' | 'cedulas', 
+  bucketName: 'selfies' | 'cedulas' | 'documents', 
   fileName: string
 ): Promise<void> => {
   try {

@@ -49,6 +49,8 @@ export interface InvestmentCalculation {
     finalAmount: number;
     totalReturn: number;
     monthlyProjection: MonthlyProjection[];
+    // Datos del formulario para solicitar inversión
+    formData?: InvestmentFormData;
 }
 
 export interface MonthlyProjection {
