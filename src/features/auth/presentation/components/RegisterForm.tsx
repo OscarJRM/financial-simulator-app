@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useInstitution } from '@/features/institution/hooks/useInstitution';
-import { Upload, Camera, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { ImagePreview } from './ImagePreview';
 
 interface RegisterFormData {
   primerNombre: string;
@@ -56,6 +57,11 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   const [cedulaReversoUri, setCedulaReversoUri] = useState('');
   const [selfieUri, setSelfieUri] = useState('');
   
+  // Estados de previsualización
+  const [cedulaFrontalPreview, setCedulaFrontalPreview] = useState<string | null>(null);
+  const [cedulaReversoPreview, setCedulaReversoPreview] = useState<string | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  
   // Estados de verificación
   const [faceVerificationStatus, setFaceVerificationStatus] = useState<'pending' | 'success' | 'failed' | 'processing'>('pending');
   const [isVerified, setIsVerified] = useState(false);
@@ -63,6 +69,15 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   // Estados de errores y carga
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Cleanup de URLs de objeto al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (cedulaFrontalPreview) URL.revokeObjectURL(cedulaFrontalPreview);
+      if (cedulaReversoPreview) URL.revokeObjectURL(cedulaReversoPreview);
+      if (selfiePreview) URL.revokeObjectURL(selfiePreview);
+    };
+  }, [cedulaFrontalPreview, cedulaReversoPreview, selfiePreview]);
 
   // Validaciones
   const validateAge = (birthDate: string): boolean => {
@@ -110,15 +125,31 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     return newErrors;
   };
 
-  // Simular subida de imagen (aquí iría la integración con tu bucket)
-  const uploadImage = async (file: File, type: string): Promise<string> => {
-    // Simulación de subida - aquí integrarías con Supabase Storage o S3
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUrl = `https://ejemplo.com/images/${type}_${Date.now()}_${file.name}`;
-        resolve(mockUrl);
-      }, 1000);
-    });
+  // Subida real de imagen a Supabase
+  const uploadImage = async (file: File, type: 'frontal' | 'reverso' | 'selfie'): Promise<string> => {
+    const { uploadImageToSupabase, generateUniqueFileName } = await import('@/lib/supabase');
+    
+    if (!formData.cedula) {
+      throw new Error('Debe ingresar la cédula antes de subir imágenes');
+    }
+
+    // Generar nombre único basado en cédula y timestamp
+    const fileName = generateUniqueFileName(
+      formData.cedula, 
+      type === 'selfie' ? 'selfie' : type === 'frontal' ? 'cedula-frontal' : 'cedula-reverso',
+      file.name
+    );
+
+    // Determinar bucket según el tipo
+    const bucketName = type === 'selfie' ? 'selfies' : 'cedulas';
+
+    try {
+      const publicUrl = await uploadImageToSupabase(file, bucketName, fileName);
+      return publicUrl;
+    } catch (error) {
+      console.error('Error subiendo imagen:', error);
+      throw new Error('Error al subir la imagen. Intente nuevamente.');
+    }
   };
 
   // Simular verificación facial (aquí iría la integración con tu SDK de reconocimiento)
@@ -136,6 +167,16 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   const handleFileUpload = async (file: File, type: 'frontal' | 'reverso' | 'selfie') => {
     if (!file) return;
 
+    // Validar que la cédula esté ingresada
+    if (!formData.cedula || formData.cedula.trim() === '') {
+      setErrors(prev => ({
+        ...prev,
+        [type === 'frontal' ? 'cedulaFrontal' : type === 'reverso' ? 'cedulaReverso' : 'selfie']: 
+        'Debe ingresar la cédula antes de subir imágenes'
+      }));
+      return;
+    }
+
     // Validar formato
     const validFormats = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!validFormats.includes(file.type)) {
@@ -150,6 +191,17 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     setUploadingImages(true);
     
     try {
+      // Crear preview local inmediatamente
+      const previewUrl = URL.createObjectURL(file);
+      
+      if (type === 'frontal') {
+        setCedulaFrontalPreview(previewUrl);
+      } else if (type === 'reverso') {
+        setCedulaReversoPreview(previewUrl);
+      } else {
+        setSelfiePreview(previewUrl);
+      }
+      
       const url = await uploadImage(file, type);
       
       if (type === 'frontal') {
@@ -178,6 +230,18 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
       }
       
     } catch (error) {
+      // Limpiar preview si hay error
+      if (type === 'frontal' && cedulaFrontalPreview) {
+        URL.revokeObjectURL(cedulaFrontalPreview);
+        setCedulaFrontalPreview(null);
+      } else if (type === 'reverso' && cedulaReversoPreview) {
+        URL.revokeObjectURL(cedulaReversoPreview);
+        setCedulaReversoPreview(null);
+      } else if (type === 'selfie' && selfiePreview) {
+        URL.revokeObjectURL(selfiePreview);
+        setSelfiePreview(null);
+      }
+      
       setErrors(prev => ({
         ...prev,
         [type === 'frontal' ? 'cedulaFrontal' : type === 'reverso' ? 'cedulaReverso' : 'selfie']: 
@@ -222,11 +286,39 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   };
 
   // Manejar cambios en el formulario
-  const handleInputChange = (field: keyof RegisterFormData, value: string) => {
+  const handleInputChange = async (field: keyof RegisterFormData, value: string) => {
+    const previousCedula = formData.cedula;
     setFormData(prev => ({ ...prev, [field]: value }));
     
+    // Si cambió la cédula y había imágenes subidas, limpiar las URLs
+    if (field === 'cedula' && previousCedula !== value && (cedulaFrontalUri || cedulaReversoUri || selfieUri)) {
+      // Limpiar URLs de objeto para evitar memory leaks
+      if (cedulaFrontalPreview) URL.revokeObjectURL(cedulaFrontalPreview);
+      if (cedulaReversoPreview) URL.revokeObjectURL(cedulaReversoPreview);
+      if (selfiePreview) URL.revokeObjectURL(selfiePreview);
+      
+      // Resetear las imágenes cuando cambia la cédula
+      setCedulaFrontalUri('');
+      setCedulaReversoUri('');
+      setSelfieUri('');
+      setCedulaFrontal(null);
+      setCedulaReverso(null);
+      setSelfie(null);
+      setCedulaFrontalPreview(null);
+      setCedulaReversoPreview(null);
+      setSelfiePreview(null);
+      setFaceVerificationStatus('pending');
+      setIsVerified(false);
+      
+      // Mostrar mensaje informativo
+      setErrors(prev => ({
+        ...prev,
+        cedula: 'Al cambiar la cédula, debe volver a subir las imágenes'
+      }));
+    }
+    
     // Limpiar error si existía
-    if (errors[field]) {
+    if (errors[field] && field !== 'cedula') {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field];
@@ -257,6 +349,48 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     } catch (error) {
       setErrors({ submit: 'Error al registrar el usuario. Intenta nuevamente.' });
     }
+  };
+
+  // Función para limpiar imágenes del usuario (útil si se cancela el registro)
+  const cleanUserImages = async () => {
+    if (formData.cedula) {
+      try {
+        const { cleanUserOldImages } = await import('@/lib/supabase');
+        await cleanUserOldImages(formData.cedula);
+      } catch (error) {
+        console.error('Error limpiando imágenes:', error);
+      }
+    }
+  };
+
+  // Función para remover imagen específica
+  const removeImage = (type: 'frontal' | 'reverso' | 'selfie') => {
+    if (type === 'frontal') {
+      if (cedulaFrontalPreview) URL.revokeObjectURL(cedulaFrontalPreview);
+      setCedulaFrontal(null);
+      setCedulaFrontalUri('');
+      setCedulaFrontalPreview(null);
+    } else if (type === 'reverso') {
+      if (cedulaReversoPreview) URL.revokeObjectURL(cedulaReversoPreview);
+      setCedulaReverso(null);
+      setCedulaReversoUri('');
+      setCedulaReversoPreview(null);
+    } else {
+      if (selfiePreview) URL.revokeObjectURL(selfiePreview);
+      setSelfie(null);
+      setSelfieUri('');
+      setSelfiePreview(null);
+      setFaceVerificationStatus('pending');
+      setIsVerified(false);
+    }
+
+    // Limpiar errores relacionados
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[type === 'frontal' ? 'cedulaFrontal' : type === 'reverso' ? 'cedulaReverso' : 'selfie'];
+      delete newErrors.verification;
+      return newErrors;
+    });
   };
 
   const renderVerificationStatus = () => {
@@ -472,93 +606,47 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
           <CardHeader>
             <CardTitle>Verificación de Identidad</CardTitle>
             <CardDescription>
-              Suba las imágenes requeridas para verificar su identidad
+              Suba las imágenes requeridas para verificar su identidad. 
+              <br />
+              <span className="text-xs text-gray-500">
+                Nota: Debe ingresar su cédula antes de subir las imágenes. 
+                Las imágenes se almacenan de forma segura con nombres únicos.
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Cédula Frontal */}
-            <div>
-              <Label>Cédula (Anverso) *</Label>
-              <div className="mt-2">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {cedulaFrontalUri ? (
-                      <CheckCircle className="w-8 h-8 text-green-500" />
-                    ) : (
-                      <Upload className="w-8 h-8 text-gray-500" />
-                    )}
-                    <p className="mb-2 text-sm text-gray-500">
-                      {cedulaFrontalUri ? 'Imagen cargada correctamente' : 'Subir imagen del anverso'}
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'frontal')}
-                  />
-                </label>
-                {errors.cedulaFrontal && (
-                  <p className="text-sm text-red-500 mt-1">{errors.cedulaFrontal}</p>
-                )}
-              </div>
-            </div>
+            <ImagePreview
+              previewUrl={cedulaFrontalPreview}
+              isUploading={uploadingImages}
+              hasUploaded={!!cedulaFrontalUri}
+              type="frontal"
+              onFileSelect={(file) => handleFileUpload(file, 'frontal')}
+              onRemove={() => removeImage('frontal')}
+              error={errors.cedulaFrontal}
+            />
 
             {/* Cédula Reverso */}
-            <div>
-              <Label>Cédula (Reverso) *</Label>
-              <div className="mt-2">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {cedulaReversoUri ? (
-                      <CheckCircle className="w-8 h-8 text-green-500" />
-                    ) : (
-                      <Upload className="w-8 h-8 text-gray-500" />
-                    )}
-                    <p className="mb-2 text-sm text-gray-500">
-                      {cedulaReversoUri ? 'Imagen cargada correctamente' : 'Subir imagen del reverso'}
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'reverso')}
-                  />
-                </label>
-                {errors.cedulaReverso && (
-                  <p className="text-sm text-red-500 mt-1">{errors.cedulaReverso}</p>
-                )}
-              </div>
-            </div>
+            <ImagePreview
+              previewUrl={cedulaReversoPreview}
+              isUploading={uploadingImages}
+              hasUploaded={!!cedulaReversoUri}
+              type="reverso"
+              onFileSelect={(file) => handleFileUpload(file, 'reverso')}
+              onRemove={() => removeImage('reverso')}
+              error={errors.cedulaReverso}
+            />
 
             {/* Selfie */}
-            <div>
-              <Label>Selfie *</Label>
-              <div className="mt-2">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {selfieUri ? (
-                      <CheckCircle className="w-8 h-8 text-green-500" />
-                    ) : (
-                      <Camera className="w-8 h-8 text-gray-500" />
-                    )}
-                    <p className="mb-2 text-sm text-gray-500">
-                      {selfieUri ? 'Selfie cargada correctamente' : 'Subir selfie'}
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".jpg,.jpeg,.png"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'selfie')}
-                  />
-                </label>
-                {errors.selfie && (
-                  <p className="text-sm text-red-500 mt-1">{errors.selfie}</p>
-                )}
-              </div>
-            </div>
+            <ImagePreview
+              previewUrl={selfiePreview}
+              isUploading={uploadingImages}
+              hasUploaded={!!selfieUri}
+              type="selfie"
+              onFileSelect={(file) => handleFileUpload(file, 'selfie')}
+              onRemove={() => removeImage('selfie')}
+              error={errors.selfie}
+            />
 
             {/* Estado de verificación */}
             <div className="bg-gray-50 p-4 rounded-lg">
