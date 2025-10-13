@@ -68,39 +68,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validar que la inversión existe
-    const inversionCheck = await query(
-      'SELECT id, monto_minimo, monto_maximo, plazo_minimo, plazo_maximo FROM inversiones WHERE id = ?',
-      [idInversion]
-    );
-
-    if (!Array.isArray(inversionCheck) || inversionCheck.length === 0) {
-      return NextResponse.json(
-        { error: 'Producto de inversión no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    const inversion = inversionCheck[0] as any;
-
-    // Validar límites de la inversión
-    if (monto < inversion.monto_minimo || monto > inversion.monto_maximo) {
-      return NextResponse.json(
-        { error: `El monto debe estar entre $${inversion.monto_minimo} y $${inversion.monto_maximo}` },
-        { status: 400 }
-      );
-    }
-
-    if (plazoMeses < inversion.plazo_minimo || plazoMeses > inversion.plazo_maximo) {
-      return NextResponse.json(
-        { error: `El plazo debe estar entre ${inversion.plazo_minimo} y ${inversion.plazo_maximo} meses` },
-        { status: 400 }
-      );
-    }
 
     // Verificar si ya existe una solicitud pendiente para esta inversión y usuario
     const existingSolicitud = await query(
-      `SELECT id FROM solicitud_inversion 
+      `SELECT id_solicitud FROM solicitud_inversion 
        WHERE id_usuario = ? AND id_inversion = ? AND estado = 'Pendiente'`,
       [idUsuario, idInversion]
     );
@@ -114,7 +85,7 @@ export async function POST(request: Request) {
 
     // Insertar la nueva solicitud
     const result = await query(
-      `INSERT INTO financial_solicitud_inversion 
+      `INSERT INTO solicitud_inversion 
         (id_usuario, id_inversion, monto, plazo_meses, ingresos, egresos, empresa, ruc, tipo_empleo, documento_validacion_uri, estado)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`,
       [
