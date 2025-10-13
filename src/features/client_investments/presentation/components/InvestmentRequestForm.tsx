@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, AlertCircle, DollarSign, Calendar, Building, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, DollarSign, Calendar, Building, FileText, Calculator, TrendingUp } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useClientInvestment, useInversionProduct } from '../../hooks/useClientInvestment';
 import { SolicitudFormData } from '../../types';
@@ -39,6 +39,12 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     tipoEmpleo: '' as 'Dependencia' | 'Independiente' | 'Otro' | ''
   });
 
+  // Estados para los datos editables del simulador
+  const [simulatorData, setSimulatorData] = useState({
+    monto: montoParam || '',
+    plazo: plazoParam || ''
+  });
+
   // Estados de documento y verificación
   const [documento, setDocumento] = useState<File | null>(null);
   const [selfie, setSelfie] = useState<File | null>(null);
@@ -53,6 +59,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
   
   // Estados de errores y carga
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [simulatorErrors, setSimulatorErrors] = useState<Record<string, string>>({});
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadingSelfie, setUploadingSelfie] = useState(false);
 
@@ -64,37 +71,123 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     };
   }, [documentoPreview, selfiePreview]);
 
+  // Inicializar datos del simulador cuando se cargan los parámetros
+  useEffect(() => {
+    if (montoParam && plazoParam) {
+      setSimulatorData({
+        monto: montoParam,
+        plazo: plazoParam
+      });
+    }
+  }, [montoParam, plazoParam]);
+
+  // Funciones de validación usando las mismas del simulador
+  const validateMonto = (monto: number): { valid: boolean; message?: string } => {
+    if (!inversion) return { valid: true };
+    
+    if (monto < inversion.monto_minimo) {
+      return {
+        valid: false,
+        message: `El monto mínimo es $${inversion.monto_minimo.toLocaleString()}`
+      };
+    }
+    
+    if (monto > inversion.monto_maximo) {
+      return {
+        valid: false,
+        message: `El monto máximo es $${inversion.monto_maximo.toLocaleString()}`
+      };
+    }
+    
+    return { valid: true };
+  };
+
+  const validatePlazo = (plazo: number): { valid: boolean; message?: string } => {
+    if (!inversion) return { valid: true };
+    
+    if (plazo < inversion.plazo_minimo) {
+      return {
+        valid: false,
+        message: `El plazo mínimo es ${inversion.plazo_minimo} mes${inversion.plazo_minimo > 1 ? 'es' : ''}`
+      };
+    }
+    
+    if (plazo > inversion.plazo_maximo) {
+      return {
+        valid: false,
+        message: `El plazo máximo es ${inversion.plazo_maximo} meses`
+      };
+    }
+    
+    return { valid: true };
+  };
+
   // Validaciones
   const validateForm = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
 
-    // Validaciones condicionales (solo si se proporciona el campo)
-    if (formData.ingresos && parseFloat(formData.ingresos) <= 0) {
-      newErrors.ingresos = 'Los ingresos deben ser mayor a 0';
+    // Campos obligatorios
+    if (!formData.empresa || formData.empresa.trim() === '') {
+      newErrors.empresa = 'El nombre de la empresa o negocio es requerido';
     }
-    if (formData.egresos && parseFloat(formData.egresos) < 0) {
-      newErrors.egresos = 'Los egresos deben ser mayor o igual a 0';
+    
+    if (!formData.ruc || formData.ruc.trim() === '') {
+      newErrors.ruc = 'El RUC es requerido';
     }
-
-    // Validar capacidad financiera (solo si se proporcionan ambos campos)
-    if (formData.ingresos && formData.egresos) {
-      const ingresos = parseFloat(formData.ingresos);
-      const egresos = parseFloat(formData.egresos);
-      const monto = parseFloat(montoParam || '0');
-      
-      if (ingresos <= egresos) {
-        newErrors.capacidad = 'Los ingresos deben ser mayores a los egresos';
-      }
-      
-      const disponible = ingresos - egresos;
-      const minimoRequerido = monto * 0.1; // Al menos 10% del monto como capacidad
-      
-      if (disponible < minimoRequerido) {
-        newErrors.capacidad = `Capacidad financiera insuficiente. Se requiere al menos $${minimoRequerido.toFixed(2)} disponibles mensualmente`;
-      }
+    
+    if (!formData.tipoEmpleo) {
+      newErrors.tipoEmpleo = 'El tipo de empleo es requerido';
+    }
+    
+    if (!formData.ingresos || parseFloat(formData.ingresos) <= 0) {
+      newErrors.ingresos = 'Los ingresos son requeridos y deben ser mayor a 0';
+    }
+    
+    if (!formData.egresos || parseFloat(formData.egresos) < 0) {
+      newErrors.egresos = 'Los egresos son requeridos y deben ser mayor o igual a 0';
     }
 
-    // La verificación facial solo es requerida si se sube documento
+    // Validar datos del simulador
+    if (!simulatorData.monto || parseFloat(simulatorData.monto) <= 0) {
+      newErrors.simulatorMonto = 'El monto de inversión es requerido y debe ser mayor a 0';
+    } else {
+      const montoValidation = validateMonto(parseFloat(simulatorData.monto));
+      if (!montoValidation.valid) {
+        newErrors.simulatorMonto = montoValidation.message!;
+      }
+    }
+
+    if (!simulatorData.plazo || parseInt(simulatorData.plazo) <= 0) {
+      newErrors.simulatorPlazo = 'El plazo es requerido y debe ser mayor a 0';
+    } else {
+      const plazoValidation = validatePlazo(parseInt(simulatorData.plazo));
+      if (!plazoValidation.valid) {
+        newErrors.simulatorPlazo = plazoValidation.message!;
+      }
+    }
+
+    // Validar capacidad financiera
+    const ingresos = parseFloat(formData.ingresos || '0');
+    const egresos = parseFloat(formData.egresos || '0');
+    const monto = parseFloat(simulatorData.monto || '0');
+    
+    if (ingresos <= egresos) {
+      newErrors.capacidad = 'Los ingresos deben ser mayores a los egresos';
+    }
+    
+    const disponible = ingresos - egresos;
+    const minimoRequerido = monto * 0.1; // Al menos 10% del monto como capacidad
+    
+    if (disponible < minimoRequerido) {
+      newErrors.capacidad = `Capacidad financiera insuficiente. Se requiere al menos $${minimoRequerido.toFixed(2)} disponibles mensualmente`;
+    }
+
+    // Documento de validación requerido
+    if (!documentoUri) {
+      newErrors.documento = 'El documento de validación laboral es requerido';
+    }
+    
+    // Verificación facial requerida si se sube documento
     if (documentoUri && !isVerified) {
       newErrors.verification = 'Debe completar la verificación facial exitosamente';
     }
@@ -333,6 +426,48 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     }
   };
 
+  // Manejar cambios en datos del simulador
+  const handleSimulatorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSimulatorData(prev => ({ ...prev, [name]: value }));
+    
+    // Validar en tiempo real
+    if (name === 'monto' && value) {
+      const montoValidation = validateMonto(parseFloat(value));
+      if (!montoValidation.valid) {
+        setSimulatorErrors(prev => ({ ...prev, monto: montoValidation.message! }));
+      } else {
+        setSimulatorErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.monto;
+          return newErrors;
+        });
+      }
+    }
+    
+    if (name === 'plazo' && value) {
+      const plazoValidation = validatePlazo(parseInt(value));
+      if (!plazoValidation.valid) {
+        setSimulatorErrors(prev => ({ ...prev, plazo: plazoValidation.message! }));
+      } else {
+        setSimulatorErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.plazo;
+          return newErrors;
+        });
+      }
+    }
+    
+    // Limpiar error general si existía
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
   // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,8 +479,8 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       return;
     }
 
-    if (!inversionId || !montoParam || !plazoParam) {
-      setErrors({ submit: 'Faltan parámetros de la inversión seleccionada' });
+    if (!inversionId || !simulatorData.monto || !simulatorData.plazo) {
+      setErrors({ submit: 'Faltan datos de la inversión (monto, plazo o producto)' });
       return;
     }
 
@@ -353,13 +488,13 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       const solicitudData: SolicitudFormData = {
         idUsuario: userId,
         idInversion: parseInt(inversionId),
-        monto: parseFloat(montoParam),
-        plazoMeses: parseInt(plazoParam),
-        ...(formData.ingresos && { ingresos: parseFloat(formData.ingresos) }),
-        ...(formData.egresos && { egresos: parseFloat(formData.egresos) }),
-        ...(formData.empresa && { empresa: formData.empresa }),
-        ...(formData.ruc && { ruc: formData.ruc }),
-        ...(formData.tipoEmpleo && { tipoEmpleo: formData.tipoEmpleo as 'Dependencia' | 'Independiente' | 'Otro' }),
+        monto: parseFloat(simulatorData.monto),
+        plazoMeses: parseInt(simulatorData.plazo),
+        ingresos: parseFloat(formData.ingresos),
+        egresos: parseFloat(formData.egresos),
+        empresa: formData.empresa,
+        ruc: formData.ruc,
+        tipoEmpleo: formData.tipoEmpleo as 'Dependencia' | 'Independiente' | 'Otro',
         ...(documentoUri && { documentoUri }),
         verificado: isVerified ? 1 : 0
       };
@@ -521,6 +656,95 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Datos del Simulador Editables */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Configurar Inversión
+            </CardTitle>
+            <CardDescription>
+              Ajuste el monto y plazo de su inversión
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="simulatorMonto">Monto de Inversión *</Label>
+                <Input
+                  id="simulatorMonto"
+                  name="monto"
+                  type="number"
+                  step="0.01"
+                  min="1000"
+                  max="1000000"
+                  value={simulatorData.monto}
+                  onChange={handleSimulatorChange}
+                  className={(simulatorErrors.monto || errors.simulatorMonto) ? 'border-red-500' : ''}
+                  placeholder="0.00"
+                />
+                {(simulatorErrors.monto || errors.simulatorMonto) && (
+                  <p className="text-sm text-red-500 mt-1">{simulatorErrors.monto || errors.simulatorMonto}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">Mínimo: $1,000 - Máximo: $1,000,000</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="simulatorPlazo">Plazo en Meses *</Label>
+                <Input
+                  id="simulatorPlazo"
+                  name="plazo"
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={simulatorData.plazo}
+                  onChange={handleSimulatorChange}
+                  className={(simulatorErrors.plazo || errors.simulatorPlazo) ? 'border-red-500' : ''}
+                  placeholder="12"
+                />
+                {(simulatorErrors.plazo || errors.simulatorPlazo) && (
+                  <p className="text-sm text-red-500 mt-1">{simulatorErrors.plazo || errors.simulatorPlazo}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">Mínimo: 1 mes - Máximo: 180 meses</p>
+              </div>
+            </div>
+
+            {/* Proyección actualizada */}
+            {simulatorData.monto && simulatorData.plazo && inversion && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-medium mb-3 text-gray-800">Proyección de Inversión:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <div>
+                      <span className="text-gray-600 block">Inversión inicial</span>
+                      <span className="font-semibold">${parseFloat(simulatorData.monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <span className="text-gray-600 block">Rendimiento estimado</span>
+                      <span className="font-semibold text-green-600">
+                        ${((parseFloat(simulatorData.monto) * (inversion.tasa_interes / 100) * parseInt(simulatorData.plazo)) / 12).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-purple-600" />
+                    <div>
+                      <span className="text-gray-600 block">Total al vencimiento</span>
+                      <span className="font-semibold text-blue-600">
+                        ${(parseFloat(simulatorData.monto) + ((parseFloat(simulatorData.monto) * (inversion.tasa_interes / 100) * parseInt(simulatorData.plazo)) / 12)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Información Laboral y Financiera */}
         <Card>
           <CardHeader>
@@ -535,14 +759,14 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="empresa">Empresa o Negocio (Opcional)</Label>
+                <Label htmlFor="empresa">Empresa o Negocio *</Label>
                 <Input
                   id="empresa"
                   type="text"
                   value={formData.empresa}
                   onChange={(e) => handleInputChange('empresa', e.target.value)}
                   className={errors.empresa ? 'border-red-500' : ''}
-                  placeholder="Nombre de la empresa donde trabaja"
+                  placeholder="Nombre de la empresa o negocio donde trabaja"
                 />
                 {errors.empresa && (
                   <p className="text-sm text-red-500 mt-1">{errors.empresa}</p>
@@ -550,14 +774,14 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="ruc">RUC (Opcional)</Label>
+                <Label htmlFor="ruc">RUC *</Label>
                 <Input
                   id="ruc"
                   type="text"
                   value={formData.ruc}
                   onChange={(e) => handleInputChange('ruc', e.target.value)}
                   className={errors.ruc ? 'border-red-500' : ''}
-                  placeholder="Número de RUC"
+                  placeholder="RUC de la empresa o negocio"
                 />
                 {errors.ruc && (
                   <p className="text-sm text-red-500 mt-1">{errors.ruc}</p>
@@ -565,7 +789,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="tipoEmpleo">Tipo de Empleo (Opcional)</Label>
+                <Label htmlFor="tipoEmpleo">Tipo de Empleo *</Label>
                 <Select value={formData.tipoEmpleo} onValueChange={(value: any) => handleInputChange('tipoEmpleo', value)}>
                   <SelectTrigger className={errors.tipoEmpleo ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Seleccione el tipo de empleo" />
@@ -582,7 +806,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="ingresos">Ingresos Mensuales (Opcional)</Label>
+                <Label htmlFor="ingresos">Ingresos Mensuales *</Label>
                 <Input
                   id="ingresos"
                   type="number"
@@ -598,7 +822,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
 
               <div>
-                <Label htmlFor="egresos">Egresos Mensuales (Opcional)</Label>
+                <Label htmlFor="egresos">Egresos Mensuales *</Label>
                 <Input
                   id="egresos"
                   type="number"
@@ -620,8 +844,20 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
                     <h4 className="font-medium mb-2">Análisis de Capacidad Financiera</h4>
                     <div className="text-sm space-y-1">
                       <div>Disponible mensual: <strong>${(parseFloat(formData.ingresos) - parseFloat(formData.egresos)).toFixed(2)}</strong></div>
-                      {montoParam && (
-                        <div>Requerido (10% del monto): <strong>${(parseFloat(montoParam) * 0.1).toFixed(2)}</strong></div>
+                      {simulatorData.monto && (
+                        <div>Requerido (10% del monto): <strong>${(parseFloat(simulatorData.monto) * 0.1).toFixed(2)}</strong></div>
+                      )}
+                      {simulatorData.monto && formData.ingresos && formData.egresos && (
+                        <div className={`font-medium ${
+                          (parseFloat(formData.ingresos) - parseFloat(formData.egresos)) >= (parseFloat(simulatorData.monto) * 0.1) 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {(parseFloat(formData.ingresos) - parseFloat(formData.egresos)) >= (parseFloat(simulatorData.monto) * 0.1) 
+                            ? '✓ Capacidad suficiente para esta inversión' 
+                            : '⚠ Capacidad insuficiente para esta inversión'
+                          }
+                        </div>
                       )}
                     </div>
                   </div>
