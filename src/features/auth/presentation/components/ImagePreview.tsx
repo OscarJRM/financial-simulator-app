@@ -2,6 +2,8 @@
 
 import { Upload, Camera, CheckCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { SelfieCapture } from './SelfieCapture';
 
 interface ImagePreviewProps {
   previewUrl: string | null;
@@ -11,6 +13,7 @@ interface ImagePreviewProps {
   onFileSelect: (file: File) => void;
   onRemove?: () => void;
   error?: string;
+  onCameraCapture?: (file: File) => void;
 }
 
 export function ImagePreview({
@@ -20,8 +23,11 @@ export function ImagePreview({
   type,
   onFileSelect,
   onRemove,
-  error
+  error,
+  onCameraCapture
 }: ImagePreviewProps) {
+  const [showCamera, setShowCamera] = useState(false);
+
   const getTypeLabel = () => {
     switch (type) {
       case 'frontal': return 'Cédula (Anverso)';
@@ -45,6 +51,15 @@ export function ImagePreview({
     }
     // Limpiar el input para permitir seleccionar el mismo archivo nuevamente
     e.target.value = '';
+  };
+
+  const handleCameraCapture = (file: File) => {
+    onFileSelect(file);
+    setShowCamera(false);
+  };
+
+  const handleCameraCancel = () => {
+    setShowCamera(false);
   };
 
   return (
@@ -126,28 +141,56 @@ export function ImagePreview({
               </div>
             </div>
           </div>
+        ) : showCamera && type === 'selfie' ? (
+          // Vista de cámara para selfie
+          <SelfieCapture
+            onCapture={handleCameraCapture}
+            onCancel={handleCameraCancel}
+            isUploading={isUploading}
+          />
         ) : (
           // Vista de subida sin imagen
-          <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <div className="text-gray-400 mb-2">
-                {getIcon()}
+          <div className="w-full">
+            {type === 'selfie' ? (
+              // Opciones especiales para selfie
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  className="flex items-center justify-center w-full h-24 border-2 border-blue-300 border-dashed rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors duration-200"
+                  disabled={isUploading}
+                >
+                  <div className="flex flex-col items-center">
+                    <Camera className="w-10 h-10 mb-2" />
+                    <span className="font-semibold text-lg">Tomar Selfie</span>
+                    <span className="text-xs">Cámara frontal</span>
+                  </div>
+                </Button>
               </div>
-              <p className="mb-2 text-sm text-gray-500 text-center">
-                <span className="font-semibold">Click para subir</span> {getTypeLabel().toLowerCase()}
-              </p>
-              <p className="text-xs text-gray-500 text-center">
-                PNG, JPG o JPEG (máx. 5MB)
-              </p>
-            </div>
-            <input
-              type="file"
-              className="hidden"
-              accept=".jpg,.jpeg,.png"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
-          </label>
+            ) : (
+              // Vista normal para cédulas
+              <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <div className="text-gray-400 mb-2">
+                    {getIcon()}
+                  </div>
+                  <p className="mb-2 text-sm text-gray-500 text-center">
+                    <span className="font-semibold">Click para subir</span> {getTypeLabel().toLowerCase()}
+                  </p>
+                  <p className="text-xs text-gray-500 text-center">
+                    PNG, JPG o JPEG (máx. 5MB)
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  disabled={isUploading}
+                />
+              </label>
+            )}
+          </div>
         )}
 
         {/* Estado de carga */}

@@ -69,7 +69,11 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   
   // Estados de errores y carga
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState({
+    frontal: false,
+    reverso: false,
+    selfie: false
+  });
 
   // Cleanup de URLs de objeto al desmontar el componente
   useEffect(() => {
@@ -236,7 +240,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
       return;
     }
 
-    setUploadingImages(true);
+    setUploadingImages(prev => ({ ...prev, [type]: true }));
     
     try {
       // Crear preview local inmediatamente
@@ -303,7 +307,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
         'Error al subir la imagen'
       }));
     } finally {
-      setUploadingImages(false);
+      setUploadingImages(prev => ({ ...prev, [type]: false }));
     }
   };
 
@@ -698,7 +702,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
             {/* Cédula Frontal */}
             <ImagePreview
               previewUrl={cedulaFrontalPreview}
-              isUploading={uploadingImages}
+              isUploading={uploadingImages.frontal}
               hasUploaded={!!cedulaFrontalUri}
               type="frontal"
               onFileSelect={(file) => handleFileUpload(file, 'frontal')}
@@ -709,7 +713,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
             {/* Cédula Reverso */}
             <ImagePreview
               previewUrl={cedulaReversoPreview}
-              isUploading={uploadingImages}
+              isUploading={uploadingImages.reverso}
               hasUploaded={!!cedulaReversoUri}
               type="reverso"
               onFileSelect={(file) => handleFileUpload(file, 'reverso')}
@@ -720,7 +724,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
             {/* Selfie */}
             <ImagePreview
               previewUrl={selfiePreview}
-              isUploading={uploadingImages}
+              isUploading={uploadingImages.selfie}
               hasUploaded={!!selfieUri}
               type="selfie"
               onFileSelect={(file) => handleFileUpload(file, 'selfie')}
@@ -748,7 +752,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || uploadingImages || !isVerified}
+            disabled={isLoading || Object.values(uploadingImages).some(Boolean) || !isVerified}
             style={{ backgroundColor: config.colors.primary }}
           >
             {isLoading ? (
