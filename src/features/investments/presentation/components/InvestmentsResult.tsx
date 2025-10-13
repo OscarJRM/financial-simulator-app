@@ -4,11 +4,27 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ArrowRight } from 'lucide-react';
 import { useInvestments } from '../../hooks/useInvestments';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
+import { useRouter } from 'next/navigation';
 
 export const InvestmentsResult: React.FC = () => {
-    const { currentCalculation, clearCalculation } = useInvestments();
+    const { currentCalculation, clearCalculation, selectedProducto } = useInvestments();
+    const router = useRouter();
+
+    const handleSolicitarInversion = () => {
+        if (!currentCalculation?.formData) return;
+        
+        const { producto_inversion_id, amount, term } = currentCalculation.formData;
+        const params = new URLSearchParams({
+            id: producto_inversion_id.toString(),
+            monto: amount.toString(),
+            plazo: term.toString()
+        });
+        
+        router.push(`/client/investments/solicitar?${params.toString()}`);
+    };
 
     if (!currentCalculation) {
         return (
@@ -74,6 +90,18 @@ export const InvestmentsResult: React.FC = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Botón de Solicitar Inversión */}
+            <div className="flex justify-center">
+                <Button 
+                    onClick={handleSolicitarInversion}
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+                >
+                    <ArrowRight className="h-5 w-5 mr-2" />
+                    Solicitar esta Inversión
+                </Button>
+            </div>
 
             {/* Proyección Mensual */}
             <Card>

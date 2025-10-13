@@ -98,8 +98,9 @@ export const InvestmentProvider: React.FC<InvestmentProviderProps> = ({ children
 
     const calculateInvestment = useCallback((data: InvestmentFormData): InvestmentCalculation => {
         const calculation = investmentService.calculateInvestment(data);
-        dispatch({ type: 'SET_CALCULATION', payload: calculation });
-        return calculation;
+        const calculationWithFormData = { ...calculation, formData: data };
+        dispatch({ type: 'SET_CALCULATION', payload: calculationWithFormData });
+        return calculationWithFormData;
     }, []);
 
     const calculateInvestmentAsync = useCallback(async (data: InvestmentFormData): Promise<InvestmentCalculation> => {
@@ -108,8 +109,9 @@ export const InvestmentProvider: React.FC<InvestmentProviderProps> = ({ children
             dispatch({ type: 'SET_ERROR', payload: null });
             
             const calculation = await investmentService.calculateInvestmentAsync(data);
-            dispatch({ type: 'SET_CALCULATION', payload: calculation });
-            return calculation;
+            const calculationWithFormData = { ...calculation, formData: data };
+            dispatch({ type: 'SET_CALCULATION', payload: calculationWithFormData });
+            return calculationWithFormData;
         } catch (error: any) {
             dispatch({ type: 'SET_ERROR', payload: error.message });
             throw error;
