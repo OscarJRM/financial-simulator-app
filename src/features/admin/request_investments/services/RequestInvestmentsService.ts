@@ -53,10 +53,10 @@ export class RequestInvestmentsService {
           case 'Pendiente':
             acc.pendientes++;
             break;
-          case 'Aprobada':
+          case 'Aprobado':
             acc.aprobadas++;
             break;
-          case 'Rechazada':
+          case 'Rechazado':
             acc.rechazadas++;
             break;
         }

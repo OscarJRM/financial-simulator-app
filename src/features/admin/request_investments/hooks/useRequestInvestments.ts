@@ -48,8 +48,8 @@ export function useRequestInvestments() {
 
   // Filtros
   const solicitudesPendientes = solicitudes.filter(s => s.estado === 'Pendiente');
-  const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'Aprobada');
-  const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'Rechazada');
+  const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'Aprobado');
+  const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'Rechazado');
 
   // Cargar al montar
   useEffect(() => {

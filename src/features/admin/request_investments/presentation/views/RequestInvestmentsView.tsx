@@ -46,7 +46,7 @@ export function RequestInvestmentsView() {
     );
   };
 
-  const handleGestionar = async (idSolicitud: number, estado: 'Aprobada' | 'Rechazada', observacion?: string) => {
+  const handleGestionar = async (idSolicitud: number, estado: 'Aprobado' | 'Rechazado', observacion?: string) => {
     await gestionarSolicitud({ idSolicitud, nuevoEstado: estado, observacion });
   };
 

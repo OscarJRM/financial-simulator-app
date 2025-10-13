@@ -22,7 +22,7 @@ import { SolicitudInversion } from '../../types';
 
 interface SolicitudCardProps {
   solicitud: SolicitudInversion;
-  onGestionar: (idSolicitud: number, estado: 'Aprobada' | 'Rechazada', observacion?: string) => void;
+  onGestionar: (idSolicitud: number, estado: 'Aprobado' | 'Rechazado', observacion?: string) => void;
   isProcessing: boolean;
 }
 
@@ -34,9 +34,9 @@ export function SolicitudCard({ solicitud, onGestionar, isProcessing }: Solicitu
     switch (estado) {
       case 'Pendiente':
         return 'default';
-      case 'Aprobada':
+      case 'Aprobado':
         return 'default'; // Verde
-      case 'Rechazada':
+      case 'Rechazado':
         return 'destructive';
       default:
         return 'default';
@@ -44,13 +44,13 @@ export function SolicitudCard({ solicitud, onGestionar, isProcessing }: Solicitu
   };
 
   const handleAprobar = () => {
-    onGestionar(solicitud.id_solicitud, 'Aprobada', observacion);
+    onGestionar(solicitud.id_solicitud, 'Aprobado', observacion);
     setObservacion('');
     setDialogOpen(false);
   };
 
   const handleRechazar = () => {
-    onGestionar(solicitud.id_solicitud, 'Rechazada', observacion);
+    onGestionar(solicitud.id_solicitud, 'Rechazado', observacion);
     setObservacion('');
     setDialogOpen(false);
   };
@@ -114,18 +114,12 @@ export function SolicitudCard({ solicitud, onGestionar, isProcessing }: Solicitu
           <div className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-purple-600" />
             <div>
-              <p className="font-semibold">{solicitud.tasa_interes}%</p>
+              <p className="font-semibold">{solicitud.tasa_anual}%</p>
               <p className="text-gray-600">Tasa</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-orange-600" />
-            <div>
-              <p className="font-semibold">{formatCurrency(solicitud.ganancia_estimada)}</p>
-              <p className="text-gray-600">Ganancia Est.</p>
-            </div>
-          </div>
+          
         </div>
 
         {/* Información laboral */}
