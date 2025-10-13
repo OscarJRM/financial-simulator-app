@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation';
 import { useClientInvestment, useInversionProduct } from '../../hooks/useClientInvestment';
 import { SolicitudFormData } from '../../types';
 import { DocumentPreview } from '@/features/client_investments/presentation/components/DocumentPreview';
+import { useInvestmentProducts } from '../../hooks/useInvestmentProducts';
 
 interface InvestmentRequestFormProps {
   userId: number;
@@ -26,6 +27,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
 
   // Hooks
   const { createSolicitud, isLoading, error, success, clearStates } = useClientInvestment();
+  const { productosInversion, isLoading: loadingProducts } = useInvestmentProducts();
   const { inversion, isLoading: loadingInversion } = useInversionProduct(
     inversionId ? parseInt(inversionId) : undefined
   );
@@ -41,6 +43,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
 
   // Estados para los datos editables del simulador
   const [simulatorData, setSimulatorData] = useState({
+    productoId: inversionId || '',
     monto: montoParam || '',
     plazo: plazoParam || ''
   });
@@ -73,29 +76,35 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
 
   // Inicializar datos del simulador cuando se cargan los parámetros
   useEffect(() => {
-    if (montoParam && plazoParam) {
+    if (inversionId || montoParam || plazoParam) {
       setSimulatorData({
-        monto: montoParam,
-        plazo: plazoParam
+        productoId: inversionId || '',
+        monto: montoParam || '',
+        plazo: plazoParam || ''
       });
     }
-  }, [montoParam, plazoParam]);
+  }, [inversionId, montoParam, plazoParam]);
+
+  // Obtener producto seleccionado
+  const selectedProducto = simulatorData.productoId ? 
+    productosInversion.find(p => p.id === parseInt(simulatorData.productoId)) : null;
 
   // Funciones de validación usando las mismas del simulador
   const validateMonto = (monto: number): { valid: boolean; message?: string } => {
-    if (!inversion) return { valid: true };
+    const producto = selectedProducto || inversion;
+    if (!producto) return { valid: true };
     
-    if (monto < inversion.monto_minimo) {
+    if (monto < producto.monto_minimo) {
       return {
         valid: false,
-        message: `El monto mínimo es $${inversion.monto_minimo.toLocaleString()}`
+        message: `El monto mínimo es $${producto.monto_minimo.toLocaleString()}`
       };
     }
     
-    if (monto > inversion.monto_maximo) {
+    if (monto > producto.monto_maximo) {
       return {
         valid: false,
-        message: `El monto máximo es $${inversion.monto_maximo.toLocaleString()}`
+        message: `El monto máximo es $${producto.monto_maximo.toLocaleString()}`
       };
     }
     
@@ -103,19 +112,23 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
   };
 
   const validatePlazo = (plazo: number): { valid: boolean; message?: string } => {
-    if (!inversion) return { valid: true };
+    const producto = selectedProducto || inversion;
+    if (!producto) return { valid: true };
     
-    if (plazo < inversion.plazo_minimo) {
+    const plazoMin = 'plazo_min_meses' in producto ? producto.plazo_min_meses : producto.plazo_minimo;
+    const plazoMax = 'plazo_max_meses' in producto ? producto.plazo_max_meses : producto.plazo_maximo;
+    
+    if (plazo < plazoMin) {
       return {
         valid: false,
-        message: `El plazo mínimo es ${inversion.plazo_minimo} mes${inversion.plazo_minimo > 1 ? 'es' : ''}`
+        message: `El plazo mínimo es ${plazoMin} mes${plazoMin > 1 ? 'es' : ''}`
       };
     }
     
-    if (plazo > inversion.plazo_maximo) {
+    if (plazo > plazoMax) {
       return {
         valid: false,
-        message: `El plazo máximo es ${inversion.plazo_maximo} meses`
+        message: `El plazo máximo es ${plazoMax} meses`
       };
     }
     
@@ -148,6 +161,10 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     }
 
     // Validar datos del simulador
+    if (!simulatorData.productoId || parseInt(simulatorData.productoId) <= 0) {
+      newErrors.simulatorProducto = 'Debe seleccionar un producto de inversión';
+    }
+
     if (!simulatorData.monto || parseFloat(simulatorData.monto) <= 0) {
       newErrors.simulatorMonto = 'El monto de inversión es requerido y debe ser mayor a 0';
     } else {
@@ -468,6 +485,26 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     }
   };
 
+  // Manejar cambio de producto
+  const handleProductoChange = (value: string) => {
+    setSimulatorData(prev => ({ ...prev, productoId: value }));
+    
+    // Limpiar errores relacionados
+    setSimulatorErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.producto;
+      return newErrors;
+    });
+    
+    if (errors.simulatorProducto) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.simulatorProducto;
+        return newErrors;
+      });
+    }
+  };
+
   // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -479,7 +516,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       return;
     }
 
-    if (!inversionId || !simulatorData.monto || !simulatorData.plazo) {
+    if (!simulatorData.productoId || !simulatorData.monto || !simulatorData.plazo) {
       setErrors({ submit: 'Faltan datos de la inversión (monto, plazo o producto)' });
       return;
     }
@@ -487,7 +524,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     try {
       const solicitudData: SolicitudFormData = {
         idUsuario: userId,
-        idInversion: parseInt(inversionId),
+        idInversion: parseInt(simulatorData.productoId),
         monto: parseFloat(simulatorData.monto),
         plazoMeses: parseInt(simulatorData.plazo),
         ingresos: parseFloat(formData.ingresos),
@@ -589,11 +626,13 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     }
   };
 
-  if (loadingInversion) {
+  if (loadingInversion || loadingProducts) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Cargando datos de la inversión...</span>
+        <span className="ml-2">
+          {loadingInversion ? 'Cargando datos de la inversión...' : 'Cargando productos de inversión...'}
+        </span>
       </div>
     );
   }
@@ -664,20 +703,85 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               Configurar Inversión
             </CardTitle>
             <CardDescription>
-              Ajuste el monto y plazo de su inversión
+              Ajuste el producto, monto y plazo de su inversión
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Selector de Producto */}
+            <div>
+              <Label htmlFor="simulatorProducto">Producto de Inversión *</Label>
+              <Select
+                value={simulatorData.productoId}
+                onValueChange={handleProductoChange}
+              >
+                <SelectTrigger className={(errors.simulatorProducto) ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Seleccione el producto de inversión" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productosInversion.map((producto) => (
+                    <SelectItem key={producto.id} value={producto.id.toString()}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{producto.nombre}</span>
+                        <span className="text-xs text-gray-500">
+                          Tasa: {producto.tasa_anual}% | 
+                          Monto: ${producto.monto_minimo.toLocaleString()} - ${producto.monto_maximo.toLocaleString()} | 
+                          Plazo: {producto.plazo_min_meses}-{producto.plazo_max_meses} meses
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.simulatorProducto && (
+                <p className="text-sm text-red-500 mt-1">{errors.simulatorProducto}</p>
+              )}
+            </div>
+
+            {/* Información del producto seleccionado */}
+            {selectedProducto && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-medium mb-3 text-gray-800">Información del Producto:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600 block">Tasa Anual</span>
+                    <span className="font-semibold text-green-600">{selectedProducto.tasa_anual}%</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 block">Riesgo</span>
+                    <span className="font-semibold">{selectedProducto.tipo_inversion?.nivel_riesgo || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 block">Tipo Interés</span>
+                    <span className="font-semibold">{selectedProducto.tipo_inversion?.tipo_interes || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 block">Tipo Tasa</span>
+                    <span className="font-semibold">{selectedProducto.tipo_inversion?.tipo_tasa || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-gray-600">{selectedProducto.descripcion}</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="simulatorMonto">Monto de Inversión *</Label>
+                <Label htmlFor="simulatorMonto">
+                  Monto de Inversión *
+                  {selectedProducto && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (${selectedProducto.monto_minimo.toLocaleString()} - ${selectedProducto.monto_maximo.toLocaleString()})
+                    </span>
+                  )}
+                </Label>
                 <Input
                   id="simulatorMonto"
                   name="monto"
                   type="number"
                   step="0.01"
-                  min="1000"
-                  max="1000000"
+                  min={selectedProducto?.monto_minimo || 1000}
+                  max={selectedProducto?.monto_maximo || 1000000}
                   value={simulatorData.monto}
                   onChange={handleSimulatorChange}
                   className={(simulatorErrors.monto || errors.simulatorMonto) ? 'border-red-500' : ''}
@@ -686,17 +790,29 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
                 {(simulatorErrors.monto || errors.simulatorMonto) && (
                   <p className="text-sm text-red-500 mt-1">{simulatorErrors.monto || errors.simulatorMonto}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">Mínimo: $1,000 - Máximo: $1,000,000</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedProducto 
+                    ? `Mínimo: $${selectedProducto.monto_minimo.toLocaleString()} - Máximo: $${selectedProducto.monto_maximo.toLocaleString()}`
+                    : 'Mínimo: $1,000 - Máximo: $1,000,000'
+                  }
+                </p>
               </div>
               
               <div>
-                <Label htmlFor="simulatorPlazo">Plazo en Meses *</Label>
+                <Label htmlFor="simulatorPlazo">
+                  Plazo en Meses *
+                  {selectedProducto && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({selectedProducto.plazo_min_meses} - {selectedProducto.plazo_max_meses} meses)
+                    </span>
+                  )}
+                </Label>
                 <Input
                   id="simulatorPlazo"
                   name="plazo"
                   type="number"
-                  min="1"
-                  max="180"
+                  min={selectedProducto?.plazo_min_meses || 1}
+                  max={selectedProducto?.plazo_max_meses || 180}
                   value={simulatorData.plazo}
                   onChange={handleSimulatorChange}
                   className={(simulatorErrors.plazo || errors.simulatorPlazo) ? 'border-red-500' : ''}
@@ -705,12 +821,17 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
                 {(simulatorErrors.plazo || errors.simulatorPlazo) && (
                   <p className="text-sm text-red-500 mt-1">{simulatorErrors.plazo || errors.simulatorPlazo}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">Mínimo: 1 mes - Máximo: 180 meses</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedProducto 
+                    ? `Mínimo: ${selectedProducto.plazo_min_meses} meses - Máximo: ${selectedProducto.plazo_max_meses} meses`
+                    : 'Mínimo: 1 mes - Máximo: 180 meses'
+                  }
+                </p>
               </div>
             </div>
 
             {/* Proyección actualizada */}
-            {simulatorData.monto && simulatorData.plazo && inversion && (
+            {simulatorData.monto && simulatorData.plazo && selectedProducto && (
               <div className="bg-white p-4 rounded-lg border">
                 <h4 className="font-medium mb-3 text-gray-800">Proyección de Inversión:</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -726,7 +847,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
                     <div>
                       <span className="text-gray-600 block">Rendimiento estimado</span>
                       <span className="font-semibold text-green-600">
-                        ${((parseFloat(simulatorData.monto) * (inversion.tasa_interes / 100) * parseInt(simulatorData.plazo)) / 12).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${((parseFloat(simulatorData.monto) * (selectedProducto.tasa_anual / 100) * parseInt(simulatorData.plazo)) / 12).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -735,7 +856,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
                     <div>
                       <span className="text-gray-600 block">Total al vencimiento</span>
                       <span className="font-semibold text-blue-600">
-                        ${(parseFloat(simulatorData.monto) + ((parseFloat(simulatorData.monto) * (inversion.tasa_interes / 100) * parseInt(simulatorData.plazo)) / 12)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${(parseFloat(simulatorData.monto) + ((parseFloat(simulatorData.monto) * (selectedProducto.tasa_anual / 100) * parseInt(simulatorData.plazo)) / 12)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
