@@ -54,6 +54,9 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
   const [documentoUri, setDocumentoUri] = useState('');
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [documentoFileName, setDocumentoFileName] = useState<string>('');
+  const [selfieFileName, setSelfieFileName] = useState<string>('');
+  const [profileSelfieUri, setProfileSelfieUri] = useState<string>(''); // Para la verificación
   
   // Estados de verificación
   const [faceVerificationStatus, setFaceVerificationStatus] = useState<'pending' | 'success' | 'failed' | 'processing'>('pending');
@@ -84,6 +87,25 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       });
     }
   }, [inversionId, montoParam, plazoParam]);
+
+  // Obtener selfie del perfil del usuario para verificación
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch(`/api/users/${userId}/profile`);
+        if (response.ok) {
+          const profile = await response.json();
+          setProfileSelfieUri(profile.selfie_uri || '');
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    if (userId) {
+      fetchUserProfile();
+    }
+  }, [userId]);
 
   // Obtener producto seleccionado
   const selectedProducto = simulatorData.productoId ? 
@@ -249,7 +271,59 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     });
   };
 
-  // Verificación facial
+  // Convertir URI a Base64
+  const uriToBase64 = async (uri: string): Promise<string> => {
+    try {
+      const response = await fetch(uri);
+      if (!response.ok) {
+        throw new Error(`Error al descargar imagen: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer).toString('base64');
+    } catch (error) {
+      console.error('Error convirtiendo URI a Base64:', error);
+      throw error;
+    }
+  };
+
+  // Verificación facial con selfie del perfil
+  const performFaceVerificationWithProfile = async (newSelfieFile: File): Promise<{ isMatch: boolean; confidence: number }> => {
+    try {
+      // Convertir el nuevo selfie a base64
+      const newSelfieBase64 = await fileToBase64(newSelfieFile);
+      
+      // Convertir el selfie del perfil a base64
+      const profileSelfieBase64 = await uriToBase64(profileSelfieUri);
+
+      const response = await fetch('/api/face-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image1: profileSelfieBase64, // Selfie del perfil (referencia)
+          image2: newSelfieBase64      // Nuevo selfie (para verificar)
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en la verificación facial');
+      }
+
+      return {
+        isMatch: data.isMatch || false,
+        confidence: data.confidence || 0
+      };
+
+    } catch (error) {
+      console.error('Error en verificación facial con perfil:', error);
+      throw error;
+    }
+  };
+
+  // Verificación facial (mantenida para compatibilidad)
   const performFaceVerification = async (documentFile: File, selfieFile: File): Promise<{ isMatch: boolean; confidence: number }> => {
     try {
       const [documentBase64, selfieBase64] = await Promise.all([
@@ -311,6 +385,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       
       setDocumentoUri(url);
       setDocumento(file);
+      setDocumentoFileName(file.name);
 
       // Limpiar error si existía
       setErrors(prev => {
@@ -359,6 +434,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       const previewUrl = URL.createObjectURL(file);
       setSelfiePreview(previewUrl);
       setSelfie(file);
+      setSelfieFileName(file.name);
 
       // Limpiar error si existía
       setErrors(prev => {
@@ -367,9 +443,9 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
         return newErrors;
       });
 
-      // Verificar si tenemos documento imagen para verificación
-      if (documento && documento.type.startsWith('image/')) {
-        await handleFaceVerification(documento, file);
+      // Verificar usando el selfie del perfil vs el nuevo selfie
+      if (profileSelfieUri) {
+        await handleFaceVerificationWithProfile(file);
       }
       
     } catch (error) {
@@ -387,7 +463,53 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     }
   };
 
-  // Manejar verificación facial
+  // Manejar verificación facial con selfie del perfil
+  const handleFaceVerificationWithProfile = async (newSelfieFile: File) => {
+    if (!profileSelfieUri) {
+      setErrors(prev => ({
+        ...prev,
+        verification: 'No se encontró selfie de referencia en su perfil. Complete su registro primero.'
+      }));
+      return;
+    }
+    
+    setFaceVerificationStatus('processing');
+    setVerificationConfidence(0);
+    
+    try {
+      const result = await performFaceVerificationWithProfile(newSelfieFile);
+      
+      if (result.isMatch) {
+        setFaceVerificationStatus('success');
+        setIsVerified(true);
+        setVerificationConfidence(result.confidence);
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.verification;
+          return newErrors;
+        });
+      } else {
+        setFaceVerificationStatus('failed');
+        setIsVerified(false);
+        setVerificationConfidence(result.confidence);
+        setErrors(prev => ({
+          ...prev,
+          verification: `La verificación facial no fue exitosa (confianza: ${Math.round(result.confidence * 100)}%). El selfie no coincide con su perfil registrado.`
+        }));
+      }
+    } catch (error: any) {
+      console.error('Error en verificación facial:', error);
+      setFaceVerificationStatus('failed');
+      setIsVerified(false);
+      setVerificationConfidence(0);
+      setErrors(prev => ({
+        ...prev,
+        verification: `Error en la verificación facial: ${error.message}`
+      }));
+    }
+  };
+
+  // Manejar verificación facial (mantenida para compatibilidad)
   const handleFaceVerification = async (documentFile: File, selfieFile: File) => {
     if (!documentFile || !selfieFile || !documentFile.type.startsWith('image/')) {
       return;
@@ -550,6 +672,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     setDocumento(null);
     setDocumentoUri('');
     setDocumentoPreview(null);
+    setDocumentoFileName('');
     setFaceVerificationStatus('pending');
     setIsVerified(false);
     setVerificationConfidence(0);
@@ -566,6 +689,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
     if (selfiePreview) URL.revokeObjectURL(selfiePreview);
     setSelfie(null);
     setSelfiePreview(null);
+    setSelfieFileName('');
     setFaceVerificationStatus('pending');
     setIsVerified(false);
     setVerificationConfidence(0);
@@ -722,11 +846,6 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
                     <SelectItem key={producto.id} value={producto.id.toString()}>
                       <div className="flex flex-col">
                         <span className="font-medium">{producto.nombre}</span>
-                        <span className="text-xs text-gray-500">
-                          Tasa: {producto.tasa_anual}% | 
-                          Monto: ${producto.monto_minimo.toLocaleString()} - ${producto.monto_maximo.toLocaleString()} | 
-                          Plazo: {producto.plazo_min_meses}-{producto.plazo_max_meses} meses
-                        </span>
                       </div>
                     </SelectItem>
                   ))}
@@ -830,39 +949,6 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               </div>
             </div>
 
-            {/* Proyección actualizada */}
-            {simulatorData.monto && simulatorData.plazo && selectedProducto && (
-              <div className="bg-white p-4 rounded-lg border">
-                <h4 className="font-medium mb-3 text-gray-800">Proyección de Inversión:</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <div>
-                      <span className="text-gray-600 block">Inversión inicial</span>
-                      <span className="font-semibold">${parseFloat(simulatorData.monto).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                    <div>
-                      <span className="text-gray-600 block">Rendimiento estimado</span>
-                      <span className="font-semibold text-green-600">
-                        ${((parseFloat(simulatorData.monto) * (selectedProducto.tasa_anual / 100) * parseInt(simulatorData.plazo)) / 12).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-purple-600" />
-                    <div>
-                      <span className="text-gray-600 block">Total al vencimiento</span>
-                      <span className="font-semibold text-blue-600">
-                        ${(parseFloat(simulatorData.monto) + ((parseFloat(simulatorData.monto) * (selectedProducto.tasa_anual / 100) * parseInt(simulatorData.plazo)) / 12)).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -1014,6 +1100,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               onRemove={removeDocument}
               error={errors.documento}
               tipoEmpleo={formData.tipoEmpleo}
+              fileName={documentoFileName}
             />
 
             {/* Selfie para verificación */}
@@ -1025,6 +1112,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
               onFileSelect={handleSelfieUpload}
               onRemove={removeSelfie}
               error={errors.selfie}
+              fileName={selfieFileName}
             />
 
             {/* Estado de verificación */}

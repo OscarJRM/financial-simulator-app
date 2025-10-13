@@ -14,6 +14,7 @@ interface DocumentPreviewProps {
   onRemove?: () => void;
   error?: string;
   tipoEmpleo?: string;
+  fileName?: string; // Nombre del archivo subido
 }
 
 export function DocumentPreview({
@@ -24,7 +25,8 @@ export function DocumentPreview({
   onFileSelect,
   onRemove,
   error,
-  tipoEmpleo
+  tipoEmpleo,
+  fileName
 }: DocumentPreviewProps) {
   const [showCamera, setShowCamera] = useState(false);
 
@@ -186,28 +188,8 @@ export function DocumentPreview({
 
               {!isUploading && (
                 <div className="space-y-3">
-                  {/* Botón de seleccionar archivo */}
-                  <div>
-                    <input
-                      type="file"
-                      id={`file-${type}`}
-                      accept={getAcceptedFormats()}
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full max-w-xs"
-                      onClick={() => document.getElementById(`file-${type}`)?.click()}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Seleccionar Archivo
-                    </Button>
-                  </div>
-
-                  {/* Botón de cámara para selfie */}
-                  {type === 'selfie' && (
+                  {type === 'selfie' ? (
+                    /* Solo botón de cámara para selfie */
                     <div>
                       <Button
                         type="button"
@@ -219,11 +201,31 @@ export function DocumentPreview({
                         Tomar Foto
                       </Button>
                     </div>
+                  ) : (
+                    /* Botón de seleccionar archivo para documentos */
+                    <div>
+                      <input
+                        type="file"
+                        id={`file-${type}`}
+                        accept={getAcceptedFormats()}
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full max-w-xs"
+                        onClick={() => document.getElementById(`file-${type}`)?.click()}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Seleccionar Archivo
+                      </Button>
+                    </div>
                   )}
 
                   <p className="text-xs text-gray-500">
                     {type === 'selfie' 
-                      ? 'Formatos: JPG, PNG (máx. 5MB)'
+                      ? 'Solo mediante cámara (JPG, PNG)'
                       : 'Formatos: JPG, PNG, PDF (máx. 10MB)'
                     }
                   </p>
@@ -246,9 +248,16 @@ export function DocumentPreview({
       {hasUploaded && !error && (
         <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-md">
           <CheckCircle className="h-4 w-4" />
-          <span className="text-sm">
-            {type === 'selfie' ? 'Selfie guardada correctamente' : 'Documento subido correctamente'}
-          </span>
+          <div className="flex-1">
+            <span className="text-sm block">
+              {type === 'selfie' ? 'Selfie guardada correctamente' : 'Documento subido correctamente'}
+            </span>
+            {fileName && (
+              <span className="text-xs text-green-700 font-medium">
+                📄 {fileName}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
