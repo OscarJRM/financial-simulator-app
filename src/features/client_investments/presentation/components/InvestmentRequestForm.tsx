@@ -90,20 +90,43 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
 
   // Obtener selfie del perfil del usuario para verificación
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserSelfie = async () => {
+      console.log('🔍 Iniciando fetch de selfie para userId:', userId);
+      
       try {
-        const response = await fetch(`/api/users/${userId}/profile`);
+        const url = `/api/users/${userId}/selfie`;
+        console.log('📡 Fetching URL:', url);
+        
+        const response = await fetch(url);
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response ok:', response.ok);
+        
         if (response.ok) {
-          const profile = await response.json();
-          setProfileSelfieUri(profile.selfie_uri || '');
+          const data = await response.json();
+          console.log('📄 Response data:', data);
+          console.log('🖼️ Selfie URI encontrada:', data.selfie_uri);
+          
+          setProfileSelfieUri(data.selfie_uri || '');
+          
+          if (data.selfie_uri) {
+            console.log('✅ Selfie del perfil cargada exitosamente');
+          } else {
+            console.log('⚠️ Selfie URI está vacía o null');
+          }
+        } else {
+          const errorData = await response.json();
+          console.log('❌ Error response:', errorData);
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('💥 Error en fetch de selfie:', error);
       }
     };
 
-    if (userId) {
-      fetchUserProfile();
+    if (userId && userId > 0) {
+      console.log('🚀 Usuario detectado, iniciando fetch de selfie...');
+      fetchUserSelfie();
+    } else {
+      console.log('⚠️ No hay userId disponible o es inválido:', userId);
     }
   }, [userId]);
 
@@ -289,11 +312,10 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
   // Verificación facial con selfie del perfil
   const performFaceVerificationWithProfile = async (newSelfieFile: File): Promise<{ isMatch: boolean; confidence: number }> => {
     try {
-      // Convertir el nuevo selfie a base64
-      const newSelfieBase64 = await fileToBase64(newSelfieFile);
-      
-      // Convertir el selfie del perfil a base64
-      const profileSelfieBase64 = await uriToBase64(profileSelfieUri);
+      const [newSelfieBase64, profileSelfieBase64] = await Promise.all([
+        fileToBase64(newSelfieFile),
+        uriToBase64(profileSelfieUri)
+      ]);
 
       const response = await fetch('/api/face-verification', {
         method: 'POST',
@@ -301,15 +323,15 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image1: profileSelfieBase64, // Selfie del perfil (referencia)
-          image2: newSelfieBase64      // Nuevo selfie (para verificar)
+          image1: profileSelfieBase64,
+          image2: newSelfieBase64
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error en la verificación facial');
+        throw new Error(data.error || `Error del servidor: ${response.status}`);
       }
 
       return {
@@ -318,7 +340,6 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       };
 
     } catch (error) {
-      console.error('Error en verificación facial con perfil:', error);
       throw error;
     }
   };
@@ -443,9 +464,14 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
         return newErrors;
       });
 
-      // Verificar usando el selfie del perfil vs el nuevo selfie
+      // Verificar automáticamente usando el selfie del perfil vs el nuevo selfie
       if (profileSelfieUri) {
         await handleFaceVerificationWithProfile(file);
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          verification: 'No se encontró selfie de referencia en su perfil. Complete su registro primero.'
+        }));
       }
       
     } catch (error) {
@@ -465,7 +491,12 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
 
   // Manejar verificación facial con selfie del perfil
   const handleFaceVerificationWithProfile = async (newSelfieFile: File) => {
+    console.log('🎭 Iniciando verificación facial...');
+    console.log('🎭 profileSelfieUri disponible:', profileSelfieUri);
+    console.log('🎭 Nuevo archivo:', newSelfieFile.name);
+    
     if (!profileSelfieUri) {
+      console.log('❌ No hay profileSelfieUri disponible para verificación');
       setErrors(prev => ({
         ...prev,
         verification: 'No se encontró selfie de referencia en su perfil. Complete su registro primero.'
@@ -494,17 +525,16 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
         setVerificationConfidence(result.confidence);
         setErrors(prev => ({
           ...prev,
-          verification: `La verificación facial no fue exitosa (confianza: ${Math.round(result.confidence * 100)}%). El selfie no coincide con su perfil registrado.`
+          verification: `Verificación facial fallida (${Math.round(result.confidence * 100)}% confianza). El selfie no coincide con su perfil.`
         }));
       }
     } catch (error: any) {
-      console.error('Error en verificación facial:', error);
       setFaceVerificationStatus('failed');
       setIsVerified(false);
       setVerificationConfidence(0);
       setErrors(prev => ({
         ...prev,
-        verification: `Error en la verificación facial: ${error.message}`
+        verification: `Error en la verificación: ${error.message}`
       }));
     }
   };

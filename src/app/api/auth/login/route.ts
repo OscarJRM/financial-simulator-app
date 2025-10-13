@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     
     // Crear usuario response
     const user = {
-      id: userData.usuario,
+      id: userData.id.toString(), // Usar el ID numérico real de la base de datos
       username: userData.usuario,
       email: `${userData.usuario}@ejemplo.com`,
       role: role,

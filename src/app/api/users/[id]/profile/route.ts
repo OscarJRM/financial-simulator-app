@@ -15,7 +15,6 @@ export async function GET(
       );
     }
 
-    // Obtener perfil del usuario
     const profileQuery = `
       SELECT 
         p.primer_nombre,
@@ -39,12 +38,12 @@ export async function GET(
     
     if (!Array.isArray(results) || results.length === 0) {
       return NextResponse.json(
-        { error: 'Perfil de usuario no encontrado' },
+        { error: 'Perfil no encontrado' },
         { status: 404 }
       );
     }
 
-    const profile = results[0];
+    const profile = results[0] as any;
 
     return NextResponse.json({
       primer_nombre: profile.primer_nombre,
@@ -62,9 +61,9 @@ export async function GET(
     });
 
   } catch (error: any) {
-    console.error('Error obteniendo perfil del usuario:', error);
+    console.error('Error obteniendo perfil:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor: ' + error.message },
+      { error: 'Error del servidor' },
       { status: 500 }
     );
   }

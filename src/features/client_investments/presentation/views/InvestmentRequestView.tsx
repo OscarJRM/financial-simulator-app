@@ -49,7 +49,32 @@ export const InvestmentRequestView: React.FC = () => {
         </p>
       </div>
 
-      <InvestmentRequestForm userId={parseInt(user.id)} />
+      {(() => {
+        console.log('🔍 [DEBUG] user:', user);
+        console.log('🔍 [DEBUG] user.id tipo:', typeof user?.id);
+        console.log('🔍 [DEBUG] user.id valor:', user?.id);
+        
+        if (!user?.id) {
+          return (
+            <div className="text-center text-red-500">
+              Error: No se pudo obtener la información del usuario
+            </div>
+          );
+        }
+        
+        const userId = parseInt(user.id);
+        console.log('🔍 [DEBUG] parseInt result:', userId);
+        
+        if (isNaN(userId)) {
+          return (
+            <div className="text-center text-red-500">
+              Error: ID de usuario inválido ({user.id})
+            </div>
+          );
+        }
+        
+        return <InvestmentRequestForm userId={userId} />;
+      })()}
     </div>
   );
 };
