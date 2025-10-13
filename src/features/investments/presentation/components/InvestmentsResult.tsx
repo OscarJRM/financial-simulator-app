@@ -1,17 +1,19 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, FileText, Download } from 'lucide-react';
 import { useInvestments } from '../../hooks/useInvestments';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 import { useRouter } from 'next/navigation';
+import { exportInvestmentToPDF, exportInvestmentToExcel } from '../../utils/exportUtils';
 
 export const InvestmentsResult: React.FC = () => {
     const { currentCalculation, clearCalculation, selectedProducto } = useInvestments();
     const router = useRouter();
+    const [exporting, setExporting] = useState<'pdf' | 'excel' | null>(null);
 
     const handleSolicitarInversion = () => {
         if (!currentCalculation?.formData) return;
@@ -24,6 +26,34 @@ export const InvestmentsResult: React.FC = () => {
         });
         
         router.push(`/client/investments/solicitar?${params.toString()}`);
+    };
+
+    const handleExportPDF = async () => {
+        if (!currentCalculation || !selectedProducto || !currentCalculation.formData) return;
+        
+        try {
+            setExporting('pdf');
+            const { amount, term } = currentCalculation.formData;
+            await exportInvestmentToPDF(currentCalculation, selectedProducto, amount, term);
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setExporting(null);
+        }
+    };
+
+    const handleExportExcel = async () => {
+        if (!currentCalculation || !selectedProducto || !currentCalculation.formData) return;
+        
+        try {
+            setExporting('excel');
+            const { amount, term } = currentCalculation.formData;
+            await exportInvestmentToExcel(currentCalculation, selectedProducto, amount, term);
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setExporting(null);
+        }
     };
 
     if (!currentCalculation) {
@@ -87,6 +117,28 @@ export const InvestmentsResult: React.FC = () => {
                                 {formatPercentage(returnPercentage)}
                             </p>
                         </div>
+                    </div>
+
+                    {/* Botones de Exportación */}
+                    <div className="flex gap-3 mt-6 pt-4 border-t">
+                        <Button
+                            onClick={handleExportPDF}
+                            disabled={exporting === 'pdf'}
+                            variant="outline"
+                            className="flex-1 text-red-600 border-red-600 hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            <FileText className="h-4 w-4" />
+                            {exporting === 'pdf' ? 'Generando PDF...' : 'Exportar PDF'}
+                        </Button>
+                        <Button
+                            onClick={handleExportExcel}
+                            disabled={exporting === 'excel'}
+                            variant="outline"
+                            className="flex-1 text-green-600 border-green-600 hover:bg-green-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            <Download className="h-4 w-4" />
+                            {exporting === 'excel' ? 'Generando Excel...' : 'Exportar Excel'}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
