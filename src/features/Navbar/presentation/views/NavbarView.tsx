@@ -62,6 +62,11 @@ export function NavbarView() {
               href: '/admin/investments',
               description: 'Gestionar productos de inversión',
             },
+            {
+              label: 'Solicitudes de Inversión',
+              href: '/admin/request-investments',
+              description: 'Revisar y gestionar solicitudes de inversión',
+            },
           ],
         },
         {
