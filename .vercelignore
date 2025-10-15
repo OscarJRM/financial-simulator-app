@@ -1,0 +1,17 @@
+# Archivos de prueba y desarrollo
+test-db-connection.js
+explore-db.js
+
+# Archivos de configuración local
+.env.local
+.env
+
+# Archivos de desarrollo
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+
+# Node modules ya se ignora por defecto
+node_modules/
