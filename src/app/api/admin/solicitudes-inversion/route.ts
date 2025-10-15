@@ -6,13 +6,13 @@ import { query } from '@/lib/database';
 ================================ */
 export async function GET() {
   try {
-    const solicitudes = await query(
+    const rawSolicitudes = await query(
       `SELECT 
         si.id_solicitud,
-        si.monto,
+        CAST(si.monto AS DECIMAL(15,2)) AS monto,
         si.plazo_meses,
-        si.ingresos,
-        si.egresos,
+        CAST(si.ingresos AS DECIMAL(15,2)) AS ingresos,
+        CAST(si.egresos AS DECIMAL(15,2)) AS egresos,
         si.empresa,
         si.ruc,
         si.tipo_empleo,
@@ -23,7 +23,7 @@ export async function GET() {
         u.usuario AS nombre_usuario,
         u.cedula,
         i.nombre AS nombre_inversion,
-        i.tasa_anual,
+        CAST(i.tasa_anual AS DECIMAL(5,2)) AS tasa_anual,
         -- cálculo simple de ganancia estimada
         ROUND(si.monto * (i.tasa_anual / 100) * (si.plazo_meses / 12), 2) AS ganancia_estimada
       FROM solicitud_inversion si
@@ -31,6 +31,16 @@ export async function GET() {
       INNER JOIN inversiones i ON si.id_inversion = i.id
       ORDER BY si.fecha_solicitud DESC`
     );
+
+    // Transformar los datos para asegurar que los campos numéricos sean números
+    const solicitudes = (rawSolicitudes as any[]).map(solicitud => ({
+      ...solicitud,
+      monto: parseFloat(solicitud.monto) || 0,
+      ingresos: parseFloat(solicitud.ingresos) || 0,
+      egresos: parseFloat(solicitud.egresos) || 0,
+      tasa_anual: parseFloat(solicitud.tasa_anual) || 0,
+      ganancia_estimada: parseFloat(solicitud.ganancia_estimada) || 0,
+    }));
 
     return NextResponse.json(solicitudes);
   } catch (error: any) {

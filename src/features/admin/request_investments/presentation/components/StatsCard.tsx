@@ -17,6 +17,11 @@ interface StatsCardProps {
 
 export function StatsCard({ stats }: StatsCardProps) {
   const formatCurrency = (amount: number) => {
+    // Manejar valores NaN o inválidos
+    if (isNaN(amount) || !isFinite(amount)) {
+      return '$0';
+    }
+    
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
