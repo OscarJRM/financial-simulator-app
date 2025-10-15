@@ -9,12 +9,14 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Función para generar nombre único de archivo
 export const generateUniqueFileName = (identifier: string, type: 'selfie' | 'cedula-frontal' | 'cedula-reverso' | 'documento-validacion', originalName: string): string => {
   const timestamp = Date.now();
+  const randomSuffix = Math.random().toString(36).substring(2, 8); // Añadir sufijo aleatorio
   const extension = originalName.split('.').pop()?.toLowerCase();
   
   // Limpiar el identificador de caracteres especiales
   const cleanIdentifier = identifier.replace(/[^0-9]/g, '');
   
-  return `${cleanIdentifier}_${type}_${timestamp}.${extension}`;
+  // Generar nombre completamente único con timestamp y sufijo aleatorio
+  return `${cleanIdentifier}_${type}_${timestamp}_${randomSuffix}.${extension}`;
 };
 
 // Función para subir imagen a Supabase Storage
@@ -24,27 +26,10 @@ export const uploadImageToSupabase = async (
   fileName: string
 ): Promise<string> => {
   try {
-    // Verificar si el archivo ya existe y eliminarlo
-    const { data: existingFiles } = await supabase.storage
-      .from(bucketName)
-      .list('', {
-        search: fileName.split('_')[0] // Buscar por cédula
-      });
-
-    // Eliminar archivos existentes del mismo usuario
-    if (existingFiles && existingFiles.length > 0) {
-      const filesToDelete = existingFiles
-        .filter(f => f.name.startsWith(fileName.split('_')[0]))
-        .map(f => f.name);
-      
-      if (filesToDelete.length > 0) {
-        await supabase.storage
-          .from(bucketName)
-          .remove(filesToDelete);
-      }
-    }
-
-    // Subir el nuevo archivo
+    // Ya NO eliminamos archivos existentes - simplemente subimos el nuevo archivo
+    // Esto permite que coexistan frontal y reverso de cédula, y múltiples selfies
+    
+    // Subir el nuevo archivo directamente
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(fileName, file, {

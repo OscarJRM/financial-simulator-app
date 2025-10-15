@@ -79,7 +79,7 @@ export default function PublicPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <Image
+                <img
                   src={institution.logo}
                   alt={institution.nombre}
                   width={80}

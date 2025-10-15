@@ -47,7 +47,16 @@ export class RequestInvestmentsService {
     const stats = solicitudes.reduce(
       (acc, solicitud) => {
         acc.total++;
-        acc.montoTotal += solicitud.monto;
+        
+        // Convertir monto a number para evitar NaN
+        const monto = typeof solicitud.monto === 'string' 
+          ? parseFloat(solicitud.monto) 
+          : solicitud.monto;
+        
+        // Solo sumar si es un número válido
+        if (!isNaN(monto) && isFinite(monto)) {
+          acc.montoTotal += monto;
+        }
         
         switch (solicitud.estado) {
           case 'Pendiente':
