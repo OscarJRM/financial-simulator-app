@@ -37,6 +37,11 @@ export function NavbarView() {
               href: '/admin/config/loan-types',
               description: 'Agregar y gestionar tipos de crédito',
             },
+              {
+              label: 'Cobros Indirectos',
+              href: '/admin/config/indirects',
+              description: 'Agregar y gestionar tipos de crédito',
+            },
           ],
         },
         {
@@ -56,6 +61,11 @@ export function NavbarView() {
               label: 'Configurar Inversiones',
               href: '/admin/investments',
               description: 'Gestionar productos de inversión',
+            },
+            {
+              label: 'Solicitudes de Inversión',
+              href: '/admin/request-investments',
+              description: 'Revisar y gestionar solicitudes de inversión',
             },
           ],
         },
@@ -95,7 +105,7 @@ export function NavbarView() {
             },
             {
               label: 'Mis Inversiones',
-              href: '/client/investments',
+              href: '/client/investments/my-investments',
               description: 'Ver mis inversiones activas',
             },
           ],

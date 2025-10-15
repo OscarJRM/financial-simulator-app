@@ -25,11 +25,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const savedUser = localStorage.getItem('auth_user');
 
         if (savedToken && savedUser) {
+          console.log('🔍 [AuthProvider] Cargando usuario desde localStorage');
+          console.log('🔍 [AuthProvider] savedUser string:', savedUser);
+          const parsedUser = JSON.parse(savedUser);
+          console.log('🔍 [AuthProvider] parsedUser:', parsedUser);
+          console.log('🔍 [AuthProvider] parsedUser.id:', parsedUser.id, 'tipo:', typeof parsedUser.id);
+          
+          // Verificar si el ID es válido
+          const userIdAsNumber = parseInt(parsedUser.id);
+          if (isNaN(userIdAsNumber)) {
+            console.error('❌ [AuthProvider] ID de usuario inválido en localStorage, limpiando...');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            setIsLoading(false);
+            return;
+          }
+          
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setUser(parsedUser);
         }
       } catch (error) {
         console.error('Error loading auth:', error);
+        // Limpiar localStorage si hay error
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
       } finally {
         setIsLoading(false);
       }
@@ -42,6 +61,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (credentials: LoginCredentials) => {
     try {
       const response = await loginUser(credentials);
+      
+      console.log('🔍 [AuthProvider] Login response:', response);
+      console.log('🔍 [AuthProvider] response.user:', response.user);
+      console.log('🔍 [AuthProvider] response.user.id:', response.user.id, 'tipo:', typeof response.user.id);
       
       // Guardar en estado
       setUser(response.user);
