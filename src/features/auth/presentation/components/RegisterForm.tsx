@@ -161,56 +161,22 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     }
   };
 
-  // Función para convertir File a Base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          // Remover el prefijo "data:image/xxx;base64,"
-          const base64 = reader.result.split(',')[1];
-          resolve(base64);
-        } else {
-          reject(new Error('Error al convertir archivo a Base64'));
-        }
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  // Verificación facial real usando la API
-  const performFaceVerification = async (cedulaFile: File, selfieFile: File): Promise<{ isMatch: boolean; confidence: number }> => {
-    if (!cedulaFile || !selfieFile) {
-      throw new Error('Faltan archivos de cédula o selfie para verificar');
+  // Verificación facial usando Face++ API con URLs de Supabase
+  const performFaceVerification = async (cedulaUrl: string, selfieUrl: string): Promise<{ isMatch: boolean; confidence: number }> => {
+    if (!cedulaUrl || !selfieUrl) {
+      throw new Error('Faltan URLs de cédula o selfie para verificar');
     }
 
     try {
-      const [cedulaBase64, selfieBase64] = await Promise.all([
-        fileToBase64(cedulaFile),
-        fileToBase64(selfieFile)
-      ]);
+      // Importar el servicio de reconocimiento facial
+      const { faceRecognitionService } = await import('@/lib/faceRecognition');
 
-      const response = await fetch('/api/face-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image1: cedulaBase64,
-          image2: selfieBase64
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error en la verificación facial');
-      }
+      // Usar el servicio de Face++ para comparar las imágenes
+      const result = await faceRecognitionService.compareFaces(cedulaUrl, selfieUrl);
 
       return {
-        isMatch: data.isMatch || false,
-        confidence: data.confidence || 0
+        isMatch: result.isMatch,
+        confidence: result.confidence / 100 // Convertir a decimal para mantener compatibilidad
       };
 
     } catch (error) {
@@ -284,12 +250,12 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
         return newErrors;
       });
 
-      // Verificar si ahora tenemos ambas imágenes necesarias para verificación
-      const currentCedulaFile = type === 'frontal' ? file : cedulaFrontal;
-      const currentSelfieFile = type === 'selfie' ? file : selfie;
+      // Verificar si ahora tenemos ambas URLs necesarias para verificación (cédula frontal y selfie)
+      const currentCedulaUrl = type === 'frontal' ? url : newCedulaFrontalUri;
+      const currentSelfieUrl = type === 'selfie' ? url : newSelfieUri;
       
-      if (currentCedulaFile && currentSelfieFile) {
-        await handleFaceVerification(currentCedulaFile, currentSelfieFile);
+      if (currentCedulaUrl && currentSelfieUrl) {
+        await handleFaceVerification(currentCedulaUrl, currentSelfieUrl);
       }
       
     } catch (error) {
@@ -316,8 +282,8 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
   };
 
   // Manejar verificación facial
-  const handleFaceVerification = async (cedulaFile: File, selfieFile: File) => {
-    if (!cedulaFile || !selfieFile) {
+  const handleFaceVerification = async (cedulaUrl: string, selfieUrl: string) => {
+    if (!cedulaUrl || !selfieUrl) {
       return;
     }
     
@@ -325,7 +291,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     setVerificationConfidence(0);
     
     try {
-      const result = await performFaceVerification(cedulaFile, selfieFile);
+      const result = await performFaceVerification(cedulaUrl, selfieUrl);
       
       if (result.isMatch) {
         setFaceVerificationStatus('success');
