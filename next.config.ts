@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   },
   // Configuraciones para mejorar compatibilidad con Vercel
   experimental: {
+    // 🔴 Desactiva lightningcss para evitar errores en Vercel
+    optimizeCss: false,
     // Configuraciones experimentales para Vercel
     esmExternals: true,
   },
