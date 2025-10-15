@@ -35,6 +35,7 @@ Se recomienda investigar simuladores de inversiones de bancos y cooperativas par
 	npm install
  	npm install mysql2
 	npm install jspdf html2canvas xlsx file-saver
+ 	npm install framer-motion
 	```
 
 3. Inicia el servidor de desarrollo:
