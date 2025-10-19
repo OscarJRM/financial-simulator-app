@@ -25,16 +25,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const savedUser = localStorage.getItem('auth_user');
 
         if (savedToken && savedUser) {
-          console.log('🔍 [AuthProvider] Cargando usuario desde localStorage');
-          console.log('🔍 [AuthProvider] savedUser string:', savedUser);
+          console.log(' [AuthProvider] Cargando usuario desde localStorage');
+          console.log(' [AuthProvider] savedUser string:', savedUser);
           const parsedUser = JSON.parse(savedUser);
-          console.log('🔍 [AuthProvider] parsedUser:', parsedUser);
-          console.log('🔍 [AuthProvider] parsedUser.id:', parsedUser.id, 'tipo:', typeof parsedUser.id);
+          console.log(' [AuthProvider] parsedUser:', parsedUser);
+          console.log('[AuthProvider] parsedUser.id:', parsedUser.id, 'tipo:', typeof parsedUser.id);
           
           // Verificar si el ID es válido
           const userIdAsNumber = parseInt(parsedUser.id);
           if (isNaN(userIdAsNumber)) {
-            console.error('❌ [AuthProvider] ID de usuario inválido en localStorage, limpiando...');
+            console.error(' [AuthProvider] ID de usuario inválido en localStorage, limpiando...');
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
             setIsLoading(false);
@@ -62,9 +62,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await loginUser(credentials);
       
-      console.log('🔍 [AuthProvider] Login response:', response);
-      console.log('🔍 [AuthProvider] response.user:', response.user);
-      console.log('🔍 [AuthProvider] response.user.id:', response.user.id, 'tipo:', typeof response.user.id);
+      console.log(' [AuthProvider] Login response:', response);
+      console.log(' [AuthProvider] response.user:', response.user);
+      console.log(' [AuthProvider] response.user.id:', response.user.id, 'tipo:', typeof response.user.id);
       
       // Guardar en estado
       setUser(response.user);

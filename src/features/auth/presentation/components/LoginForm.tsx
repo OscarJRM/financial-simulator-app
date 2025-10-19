@@ -138,9 +138,9 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
 
         {/* Info de prueba (solo para desarrollo) */}
         <div className="mt-8 p-4 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
-          <p className="font-semibold">🔐 Credenciales de prueba:</p>
-          <p><strong>Admin:</strong> admin / admin123</p>
-          <p><strong>Cliente:</strong> cliente / cliente123</p>
+          <p className="font-semibold"> Credenciales de prueba:</p>
+          <p><strong>Admin:</strong> admin / admin</p>
+          <p><strong>Cliente:</strong> user / user</p>
         </div>
       </div>
     </div>

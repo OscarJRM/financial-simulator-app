@@ -160,14 +160,14 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
       // Importar el servicio de reconocimiento facial CON DEEPSTACK
       const { faceRecognitionService } = await import('@/lib/faceRecognition');
 
-      console.log('🎭 Iniciando comparación facial con DeepStack...');
-      console.log('📸 Cédula file:', cedulaFile.name);
-      console.log('📸 Selfie file:', selfieFile.name);
+      console.log(' Iniciando comparación facial con DeepStack...');
+      console.log(' Cédula file:', cedulaFile.name);
+      console.log(' Selfie file:', selfieFile.name);
 
       // USAR COMPARACIÓN DIRECTA DE ROSTROS
       const comparisonResult = await faceRecognitionService.compareFaces(cedulaFile, selfieFile);
 
-      console.log('🎉 Resultado comparación DeepStack:', comparisonResult);
+      console.log(' Resultado comparación DeepStack:', comparisonResult);
 
       return {
         isMatch: comparisonResult.isMatch,
@@ -175,7 +175,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
       };
 
     } catch (error: any) {
-      console.error('❌ Error en comparación facial:', error);
+      console.error(' Error en comparación facial:', error);
 
       // Mensajes de error más específicos para DeepStack
       if (error.message.includes('Failed to fetch')) {

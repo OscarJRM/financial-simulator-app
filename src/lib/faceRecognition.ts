@@ -27,17 +27,17 @@ class FaceRecognitionService {
     this.baseUrl = '/api/deepstack';
     this.confidenceThreshold = 0.60; // 58% de umbral
 
-    console.log('🔧 SERVICIO INICIALIZADO');
-    console.log('🌐 Proxy URL:', this.baseUrl);
-    console.log('🎯 Confidence Threshold:', this.confidenceThreshold);
+    console.log(' SERVICIO INICIALIZADO');
+    console.log('Proxy URL:', this.baseUrl);
+    console.log(' Confidence Threshold:', this.confidenceThreshold);
   }
 
   /**
    * Detecta rostros en una imagen
    */
   async detectFace(imageFile: File): Promise<FaceDetectionResult> {
-    console.log('🔍 ===== INICIANDO DETECCIÓN FACIAL =====');
-    console.log('📁 Archivo:', imageFile.name, `Tamaño: ${(imageFile.size / 1024).toFixed(1)}KB`);
+    console.log(' ===== INICIANDO DETECCIÓN FACIAL =====');
+    console.log(' Archivo:', imageFile.name, `Tamaño: ${(imageFile.size / 1024).toFixed(1)}KB`);
 
     try {
       const formData = new FormData();
@@ -48,25 +48,25 @@ class FaceRecognitionService {
         body: formData
       });
 
-      console.log('📥 Proxy respondió - Status:', response.status);
+      console.log(' Proxy respondió - Status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Error del proxy:', errorText);
+        console.error(' Error del proxy:', errorText);
         throw new Error(`Proxy error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('📄 RESPUESTA DETECCIÓN:', data);
+      console.log(' RESPUESTA DETECCIÓN:', data);
 
       // Análisis de la respuesta
       if (data.predictions && data.predictions.length > 0) {
-        console.log('✅ ROSTROS DETECTADOS:', data.predictions.length);
+        console.log(' ROSTROS DETECTADOS:', data.predictions.length);
         data.predictions.forEach((pred: any, index: number) => {
           console.log(`   Rostro ${index + 1}: Confianza ${(pred.confidence * 100).toFixed(1)}%`);
         });
       } else {
-        console.log('❌ NO SE DETECTARON ROSTROS');
+        console.log(' NO SE DETECTARON ROSTROS');
       }
 
       return {
@@ -77,7 +77,7 @@ class FaceRecognitionService {
       };
 
     } catch (error: any) {
-      console.error('💥 ERROR EN DETECCIÓN:', error);
+      console.error(' ERROR EN DETECCIÓN:', error);
       throw error;
     }
   }
@@ -86,19 +86,19 @@ class FaceRecognitionService {
    * Compara dos rostros
    */
   async compareFaces(image1: File, image2: File): Promise<FaceComparisonResult> {
-    console.log('🔄 ===== INICIANDO COMPARACIÓN FACIAL =====');
-    console.log('📸 Cédula:', image1.name);
-    console.log('📸 Selfie:', image2.name);
+    console.log(' ===== INICIANDO COMPARACIÓN FACIAL =====');
+    console.log(' Cédula:', image1.name);
+    console.log('Selfie:', image2.name);
 
     try {
       // USAR ENDPOINT /MATCH (que ya sabemos que funciona)
-      console.log('🎯 Usando endpoint /match...');
+      console.log(' Usando endpoint /match...');
       const matchResult = await this.useMatchEndpoint(image1, image2);
-      console.log('✅ COMPARACIÓN EXITOSA');
+      console.log(' COMPARACIÓN EXITOSA');
       return matchResult;
 
     } catch (error: any) {
-      console.error('💥 ERROR EN COMPARACIÓN:', error);
+      console.error(' ERROR EN COMPARACIÓN:', error);
       throw error;
     }
   }
@@ -131,7 +131,7 @@ class FaceRecognitionService {
    */
   private async urlToFile(url: string, filename: string): Promise<File> {
     try {
-      console.log('📥 Descargando imagen desde URL...');
+      console.log('Descargando imagen desde URL...');
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -202,7 +202,7 @@ class FaceRecognitionService {
    * Comparación por detección individual (fallback)
    */
   private async compareWithIndividualDetection(image1: File, image2: File): Promise<FaceComparisonResult> {
-    console.log('🔍 EJECUTANDO DETECCIÓN INDIVIDUAL (FALLBACK)');
+    console.log(' EJECUTANDO DETECCIÓN INDIVIDUAL (FALLBACK)');
 
     const [detection1, detection2] = await Promise.all([
       this.detectFace(image1),

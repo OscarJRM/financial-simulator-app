@@ -50,9 +50,9 @@ export const InvestmentRequestView: React.FC = () => {
       </div>
 
       {(() => {
-        console.log('🔍 [DEBUG] user:', user);
-        console.log('🔍 [DEBUG] user.id tipo:', typeof user?.id);
-        console.log('🔍 [DEBUG] user.id valor:', user?.id);
+        console.log(' [DEBUG] user:', user);
+        console.log(' [DEBUG] user.id tipo:', typeof user?.id);
+        console.log(' [DEBUG] user.id valor:', user?.id);
         
         if (!user?.id) {
           return (
@@ -63,7 +63,7 @@ export const InvestmentRequestView: React.FC = () => {
         }
         
         const userId = parseInt(user.id);
-        console.log('🔍 [DEBUG] parseInt result:', userId);
+        console.log(' [DEBUG] parseInt result:', userId);
         
         if (isNaN(userId)) {
           return (

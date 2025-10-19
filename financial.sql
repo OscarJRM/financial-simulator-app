@@ -146,8 +146,8 @@ CREATE TABLE `info_inst` (
 --
 
 INSERT INTO `info_inst` (`id_info`, `nombre`, `logo`, `slogan`, `color_primario`, `color_secundario`, `direccion`, `pais`, `owner`, `telefono`, `correo`, `estado`) VALUES
-(1, 'BANCO CHILL DE COJONEEEES', 'https://mir-s3-cdn-cf.behance.net/project_modules/1400_webp/768881137475311.620bf35301822.jpg', 'Tu banco, tu dinero', '#c4d8f8', '#dedede', 'Ambato', 'Ecuador', 'owner', 'aaa', 'bancoprueba@gmail.com', 1),
-(2, 'TEst', 'https://mir-s3-cdn-cf.behance.net/project_modules/1400_webp/768881137475311.620bf35301822.jpg', 'djsdnhj', NULL, NULL, 'sdasd', NULL, NULL, 'sdsdasd', 'sdasdasd', 1);
+(1, 'BANCO TU BANCO', 'https://static.vecteezy.com/system/resources/thumbnails/013/948/727/small/bank-icon-logo-design-vector.jpg', 'Tu banco, tu dinero', '#c4d8f8', '#dedede', 'Ambato', 'Ecuador', 'owner', 'aaa', 'bancoprueba@gmail.com', 1),
+(2, 'TEst', 'https://static.vecteezy.com/system/resources/thumbnails/013/948/727/small/bank-icon-logo-design-vector.jpg', 'djsdnhj', NULL, NULL, 'sdasd', NULL, NULL, 'sdsdasd', 'sdasdasd', 1);
 
 -- --------------------------------------------------------
 

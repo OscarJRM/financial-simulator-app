@@ -23,7 +23,7 @@ export async function fetchInstitutionConfig(): Promise<InstitutionConfig> {
     
     // Si no hay datos en la BD, retornar configuración por defecto del mock
     if (!data) {
-      console.log('📝 No hay datos en BD, usando mock por defecto');
+      console.log(' No hay datos en BD, usando mock por defecto');
       return defaultConfig as InstitutionConfig;
     }
 
@@ -38,7 +38,7 @@ export async function fetchInstitutionConfig(): Promise<InstitutionConfig> {
       }
     };
 
-    console.log('✅ Datos cargados desde BD:', institutionConfig);
+    console.log(' Datos cargados desde BD:', institutionConfig);
     return institutionConfig;
 
   } catch (error) {
@@ -84,11 +84,11 @@ export async function updateInstitutionConfig(
       throw new Error('Error al guardar la configuración');
     }
 
-    console.log('✅ Configuración guardada en BD:', config);
+    console.log(' Configuración guardada en BD:', config);
     return config;
 
   } catch (error) {
-    console.error('❌ Error updating institution config:', error);
+    console.error(' Error updating institution config:', error);
     throw error;
   }
 }

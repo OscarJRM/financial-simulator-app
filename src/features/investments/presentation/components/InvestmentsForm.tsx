@@ -41,10 +41,11 @@ export const InvestmentsForm: React.FC = () => {
     const [isCalculating, setIsCalculating] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-    const handleInputChange = (field: keyof InvestmentFormData, value: string | number) => {
+    // Manejar cambios en campos de texto/número
+    const handleInputChange = (field: keyof InvestmentFormData, value: string) => {
         setFormData(prev => ({
             ...prev,
-            [field]: value,
+            [field]: value === '' ? 0 : parseFloat(value) || 0,
         }));
         
         // Limpiar error del campo cuando el usuario empiece a escribir
@@ -53,6 +54,37 @@ export const InvestmentsForm: React.FC = () => {
                 ...prev,
                 [field]: '',
             }));
+        }
+    };
+
+    // Validar campo individual cuando el usuario sale del campo
+    const handleFieldBlur = (field: 'amount' | 'term', value: number) => {
+        if (!selectedProducto || value <= 0) return;
+
+        let isValid = true;
+        
+        if (field === 'amount') {
+            isValid = value >= selectedProducto.monto_minimo && value <= selectedProducto.monto_maximo;
+            if (!isValid) {
+                setFieldErrors(prev => ({ ...prev, amount: 'Valor inválido' }));
+            } else {
+                setFieldErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.amount;
+                    return newErrors;
+                });
+            }
+        } else if (field === 'term') {
+            isValid = value >= selectedProducto.plazo_min_meses && value <= selectedProducto.plazo_max_meses;
+            if (!isValid) {
+                setFieldErrors(prev => ({ ...prev, term: 'Valor inválido' }));
+            } else {
+                setFieldErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.term;
+                    return newErrors;
+                });
+            }
         }
     };
 
@@ -75,37 +107,26 @@ export const InvestmentsForm: React.FC = () => {
 
         if (formData.amount <= 0) {
             errors.amount = 'El monto debe ser mayor a 0';
-        } else if (formData.producto_inversion_id > 0) {
-            const amountValidation = validateAmount(formData.producto_inversion_id, formData.amount);
-            if (!amountValidation.valid) {
-                errors.amount = amountValidation.message!;
+        } else if (selectedProducto) {
+            const isValidAmount = formData.amount >= selectedProducto.monto_minimo && 
+                                 formData.amount <= selectedProducto.monto_maximo;
+            if (!isValidAmount) {
+                errors.amount = 'Valor inválido';
             }
         }
 
         if (formData.term <= 0) {
             errors.term = 'El plazo debe ser mayor a 0';
-        } else if (formData.producto_inversion_id > 0) {
-            const termValidation = validateTerm(formData.producto_inversion_id, formData.term);
-            if (!termValidation.valid) {
-                errors.term = termValidation.message!;
+        } else if (selectedProducto) {
+            const isValidTerm = formData.term >= selectedProducto.plazo_min_meses && 
+                               formData.term <= selectedProducto.plazo_max_meses;
+            if (!isValidTerm) {
+                errors.term = 'Valor inválido';
             }
         }
 
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
-    };
-
-    const handleCalculate = async () => {
-        if (validateForm()) {
-            setIsCalculating(true);
-            try {
-                await calculateInvestmentAsync(formData);
-            } catch (error) {
-                console.error('Error al calcular inversión:', error);
-            } finally {
-                setIsCalculating(false);
-            }
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -122,9 +143,16 @@ export const InvestmentsForm: React.FC = () => {
         }
     };
 
+    // Verificar si el formulario puede enviarse
+    const canSubmit = formData.producto_inversion_id > 0 && 
+                     formData.amount > 0 && 
+                     formData.term > 0 && 
+                     Object.values(fieldErrors).every(error => !error);
+
     return (
         <Card className="w-full max-w-2xl">
             <CardHeader>
+                <CardTitle>Simulador de Inversiones</CardTitle>
                 <CardDescription>
                     Ingresa los datos de tu inversión para calcular los rendimientos proyectados
                 </CardDescription>
@@ -143,7 +171,7 @@ export const InvestmentsForm: React.FC = () => {
                             <FieldContent>
                                 <Select
                                     value={formData.producto_inversion_id.toString()}
-                                    onValueChange={(value) => handleInputChange('producto_inversion_id', parseInt(value) || 0)}
+                                    onValueChange={(value) => handleInputChange('producto_inversion_id', value)}
                                 >
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Seleccione la inversión" />
@@ -154,27 +182,34 @@ export const InvestmentsForm: React.FC = () => {
                                                 <div className="flex flex-col w-full">
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-medium">{producto.nombre}</span>
+                                                        <span className="text-sm text-gray-600">
+                                                            {producto.tasa_anual}% anual
+                                                        </span>
                                                     </div>
+                                                    <span className="text-xs text-gray-500 mt-1">
+                                                        {producto.tipo_inversion?.nombre}
+                                                    </span>
                                                 </div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {fieldErrors.producto_inversion_id && <FieldError>{fieldErrors.producto_inversion_id}</FieldError>}
+                                {fieldErrors.producto_inversion_id && 
+                                    <FieldError>{fieldErrors.producto_inversion_id}</FieldError>
+                                }
                             </FieldContent>
                         </Field>
 
                         {selectedProducto && (
                             <div className="p-4 bg-gray-50 rounded-lg border">
                                 <h4 className="font-medium text-gray-900 mb-3">
-                                    Información del Inversión
+                                    Información del Producto
                                 </h4>
                                 
-                                {/* Información Principal */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center p-2 bg-white rounded border">
-                                            <span className="text-gray-600">Tipo de Inversión:</span>
+                                            <span className="text-gray-600">Tipo:</span>
                                             <span className="font-medium">{selectedProducto.tipo_inversion?.nombre}</span>
                                         </div>
                                         <div className="flex justify-between items-center p-2 bg-white rounded border">
@@ -182,24 +217,27 @@ export const InvestmentsForm: React.FC = () => {
                                             <span className="font-medium">{selectedProducto.tasa_anual}%</span>
                                         </div>
                                         <div className="flex justify-between items-center p-2 bg-white rounded border">
-                                            <span className="text-gray-600">Nivel de Riesgo:</span>
+                                            <span className="text-gray-600">Riesgo:</span>
                                             <span className="font-medium">{selectedProducto.tipo_inversion?.nivel_riesgo}</span>
                                         </div>
                                     </div>
                                     
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center p-2 bg-white rounded border">
-                                            <span className="text-gray-600">Tipo de Interés:</span>
+                                            <span className="text-gray-600">Interés:</span>
                                             <span className="font-medium">{selectedProducto.tipo_inversion?.tipo_interes}</span>
                                         </div>
                                         <div className="flex justify-between items-center p-2 bg-white rounded border">
-                                            <span className="text-gray-600">Tipo de Tasa:</span>
+                                            <span className="text-gray-600">Tasa:</span>
                                             <span className="font-medium">{selectedProducto.tipo_inversion?.tipo_tasa}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center p-2 bg-white rounded border">
+                                            <span className="text-gray-600">Plazo min:</span>
+                                            <span className="font-medium">{selectedProducto.plazo_min_meses} meses</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Descripción */}
                                 <div className="border-t pt-3">
                                     <h5 className="font-medium text-gray-800 mb-2">Descripción</h5>
                                     <p className="text-sm text-gray-600 bg-white p-2 rounded border">
@@ -215,22 +253,21 @@ export const InvestmentsForm: React.FC = () => {
                                     Monto a Invertir (USD)
                                     {selectedProducto && (
                                         <span className="ml-2 text-xs text-gray-500">
-                                            (${selectedProducto.monto_minimo.toLocaleString()}
-                                            - ${selectedProducto.monto_maximo.toLocaleString()})</span>
+                                            (${selectedProducto.monto_minimo.toLocaleString()} - ${selectedProducto.monto_maximo.toLocaleString()})
+                                        </span>
                                     )}
                                 </FieldLabel>
                                 <FieldContent>
                                     <Input
                                         id="amount"
                                         type="number"
-                                        placeholder={ 
-                                            "Ingrese el monto a invertir"
-                                        }
+                                        placeholder="Ingrese el monto a invertir"
                                         value={formData.amount || ''}
-                                        onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
+                                        onChange={(e) => handleInputChange('amount', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('amount', parseFloat(e.target.value) || 0)}
                                         min={selectedProducto?.monto_minimo || 0}
-                                        max={selectedProducto?.monto_maximo}
-                                        step="1000"
+                                        max={selectedProducto?.monto_maximo || 1000000}
+                                        step="100"
                                         aria-invalid={!!fieldErrors.amount}
                                     />
                                     {fieldErrors.amount && <FieldError>{fieldErrors.amount}</FieldError>}
@@ -242,8 +279,7 @@ export const InvestmentsForm: React.FC = () => {
                                     Plazo (meses)
                                     {selectedProducto && (
                                         <span className="ml-2 text-xs text-gray-500">
-                                            ({selectedProducto.plazo_min_meses}
-                                             - {selectedProducto.plazo_max_meses} meses)
+                                            ({selectedProducto.plazo_min_meses} - {selectedProducto.plazo_max_meses} meses)
                                         </span>
                                     )}
                                 </FieldLabel>
@@ -256,7 +292,8 @@ export const InvestmentsForm: React.FC = () => {
                                             "Ingrese el plazo en meses"
                                         }
                                         value={formData.term || ''}
-                                        onChange={(e) => handleInputChange('term', parseInt(e.target.value) || 0)}
+                                        onChange={(e) => handleInputChange('term', e.target.value)}
+                                        onBlur={(e) => handleFieldBlur('term', parseInt(e.target.value) || 0)}
                                         min={selectedProducto?.plazo_min_meses || 1}
                                         max={selectedProducto?.plazo_max_meses || 360}
                                         aria-invalid={!!fieldErrors.term}
@@ -270,7 +307,7 @@ export const InvestmentsForm: React.FC = () => {
                     <div className="flex gap-3 pt-4">
                         <Button
                             type="submit"
-                            disabled={formData.producto_inversion_id <= 0 || !formData.amount || isCalculating || Object.values(fieldErrors).some(error => error)}
+                            disabled={!canSubmit || isCalculating}
                             className="flex-1"
                         >
                             {isCalculating ? (
