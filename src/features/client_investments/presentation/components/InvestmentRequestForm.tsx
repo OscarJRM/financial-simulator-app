@@ -246,7 +246,7 @@ export function InvestmentRequestForm({ userId }: InvestmentRequestFormProps) {
       // 3. Usar el servicio de DeepStack para comparar
       const { faceRecognitionService } = await import('@/lib/faceRecognition');
 
-      console('🔍 Comparando selfie del perfil con nueva selfie...');
+      console.log('Comparando selfie del perfil con nueva selfie...');
       const result = await faceRecognitionService.compareFacesFromUrls(
         profileSelfieUrl,
         newSelfieUrl
