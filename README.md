@@ -132,6 +132,11 @@ src/
 
 ---
 
-## Autor
+## Autores:
 
-OscarJRM
+- Oscar Joel Ramírez - OscarJRM
+
+- Johan Curicho - LizardCs
+
+
+- Jonathan Villafuerte - VillafuerteJonathan 
